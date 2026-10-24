@@ -1,0 +1,262 @@
+:root {
+  /* Palette relevée sur le logo « Belles Tomates » : rouge tomate, vert feuille, blanc.
+     Les teintes « logo » (#f82018, #22d000) servent aux aplats décoratifs ; les variantes
+     plus foncées servent au texte et aux boutons (contraste ≥ 4,5:1 avec le blanc). */
+  --blanc: #ffffff;
+  --rouge-logo: #f82018;
+  --rouge: #e0200f;          /* bandeau, boutons d'alerte — texte blanc dessus : 4,8:1 */
+  --rouge-fonce: #c8180e;    /* texte rouge sur fond clair : 5,8:1 */
+  --rouge-pale: #fdecea;
+  --vert-logo: #22d000;
+  --vert: #1a7f0a;           /* boutons, liens, texte vert — 5,1:1 sur blanc */
+  --vert-hover: #146308;
+  --vert-fonce: #14520a;     /* titres */
+  --vert-pale: #eaf8e6;
+  --fond: #f6faf4;
+  --gris-texte: #4b5648;
+  --gris-bordure: #dbe5d6;
+  --encre: #1c241b;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+img, svg { max-width: 100%; }
+.entete__burger { display: none; }
+
+body {
+  margin: 0;
+  font-family: Calibri, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--fond);
+  color: var(--encre);
+}
+
+h1, h2 { color: var(--vert-fonce); font-family: Georgia, 'Times New Roman', serif; }
+h1 { font-size: 1.6rem; margin: 0 0 1.2rem; }
+h2 { font-size: 1.05rem; margin: 0; }
+
+a { color: var(--vert); }
+
+.mise-en-page { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* -- En-tête / navigation ------------------------------------------- */
+.entete {
+  background: var(--rouge);
+  color: #fff;
+  border-bottom: 4px solid var(--vert-logo);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.2rem;
+  flex-wrap: wrap;
+}
+.entete__marque { display: flex; align-items: center; gap: 0.6rem; font-weight: bold; }
+.entete__marque--centree .entete__logo { background: var(--rouge); color: #fff; }
+.entete__marque--centree { justify-content: center; margin-bottom: 0.5rem; color: var(--rouge-fonce); }
+.entete__logo {
+  background: #fff; color: var(--rouge-fonce); font-weight: bold;
+  border-radius: 50%; width: 2rem; height: 2rem; display: flex;
+  align-items: center; justify-content: center; font-size: 0.8rem;
+}
+.entete__nav { display: flex; gap: 0.3rem; flex: 1; flex-wrap: wrap; }
+.entete__lien {
+  color: #fff; text-decoration: none; padding: 0.5rem 0.65rem;
+  border-radius: var(--radius); font-size: 0.92rem; position: relative;
+}
+.entete__lien:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.entete__lien--actif { background: #fff; color: var(--rouge-fonce); font-weight: bold; }
+.entete__lien--actif:hover { background: #fff; color: var(--rouge-fonce); }
+.entete__utilisateur { display: flex; align-items: center; gap: 0.8rem; }
+.entete__identite { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; font-size: 0.85rem; }
+.pastille {
+  background: var(--vert-logo); color: #0f3d0a; font-weight: bold; border-radius: 999px; font-size: 0.7rem;
+  padding: 0.05rem 0.4rem; margin-left: 0.3rem;
+}
+
+.contenu { flex: 1; padding: 1.5rem; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+/* -- Page de connexion ------------------------------------------------ */
+.page-connexion { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--vert-pale); border-top: 6px solid var(--rouge); }
+.carte--connexion { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 0.9rem; }
+.carte--connexion .texte-discret { text-align: center; }
+.texte-discret { color: #5d6a59; font-size: 0.85rem; margin: 0 0 0.5rem; }
+
+/* -- Cartes ------------------------------------------------------------ */
+.carte {
+  background: #fff; border: 1px solid var(--gris-bordure); border-radius: var(--radius);
+  padding: 1.1rem 1.3rem; margin-bottom: 1.2rem;
+}
+.carte__entete { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+.grille-cartes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.2rem; }
+.chiffre-cle { font-size: 2.2rem; font-weight: bold; color: var(--vert-fonce); margin: 0.2rem 0; }
+.chiffre-cle span { font-size: 0.95rem; font-weight: normal; color: var(--gris-texte); }
+
+.page__entete { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.6rem; }
+.page--erreur { text-align: center; padding-top: 3rem; }
+
+/* -- Formulaires -------------------------------------------------------- */
+.formulaire { display: flex; flex-direction: column; gap: 0.8rem; }
+.formulaire--ligne { flex-direction: row; align-items: flex-end; gap: 1rem; }
+.formulaire__ligne { display: flex; gap: 1rem; flex-wrap: wrap; }
+.formulaire__ligne > label { flex: 1; min-width: 180px; }
+label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem; color: var(--gris-texte); }
+.case-a-cocher { flex-direction: row; align-items: center; gap: 0.5rem; }
+input:not([type]), input[type="text"], input[type="password"], input[type="date"], input[type="number"],
+input[type="email"], input[type="file"], select {
+  padding: 0.5rem 0.6rem; border: 1px solid var(--gris-bordure); border-radius: 6px;
+  font-size: 0.92rem; font-family: inherit; background: #fff;
+}
+input:focus-visible, select:focus-visible { outline: 2px solid var(--vert); outline-offset: 1px; border-color: var(--vert); }
+
+/* -- Boutons ------------------------------------------------------------ */
+.bouton {
+  border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.9rem;
+  cursor: pointer; font-family: inherit; display: inline-block; text-decoration: none;
+}
+.bouton--primaire { background: var(--vert); color: #fff; }
+.bouton--primaire:hover { background: var(--vert-hover); }
+.bouton--discret { background: var(--vert-pale); color: var(--vert-fonce); border: 1px solid var(--gris-bordure); }
+.bouton--discret:hover { background: #d8f1d1; }
+.bouton--succes { background: var(--vert); color: #fff; }
+.bouton--danger { background: var(--rouge-fonce); color: #fff; }
+.bouton--danger:hover { background: #a01309; }
+.bouton:disabled { opacity: 0.55; cursor: not-allowed; }
+.bouton:focus-visible, .tri:focus-visible, a:focus-visible { outline: 3px solid var(--vert-logo); outline-offset: 2px; }
+
+/* -- Tableaux ------------------------------------------------------------ */
+.tableau { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.tableau th { text-align: left; color: var(--vert-fonce); border-bottom: 2px solid var(--vert); padding: 0.5rem; }
+.tableau td { padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--gris-bordure); vertical-align: top; }
+div.tableau__actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+td.tableau__actions .bouton { margin-right: 0.4rem; margin-bottom: 0.2rem; }
+.tableau__sous-ligne td { background: var(--vert-pale); }
+
+.validation__action { display: flex; flex-direction: column; gap: 0.4rem; min-width: 220px; }
+
+/* -- Badges -------------------------------------------------------------- */
+.badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+.badge--role { background: var(--vert-pale); color: var(--vert-fonce); }
+
+/* -- Alertes -------------------------------------------------------------- */
+.alerte { padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.88rem; margin: 0.2rem 0; }
+.alerte--erreur { background: var(--rouge-pale); color: var(--rouge-fonce); border-left: 4px solid var(--rouge); }
+.alerte--succes { background: var(--vert-pale); color: var(--vert-fonce); border-left: 4px solid var(--vert-logo); }
+.alerte--info { background: #fff; color: var(--gris-texte); border: 1px solid var(--gris-bordure); border-left: 4px solid var(--vert); }
+
+.chargement { color: var(--gris-texte); font-style: italic; }
+
+/* -- Notifications --------------------------------------------------------- */
+.liste-notifications { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.liste-notifications li {
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  padding: 0.6rem 0.7rem; border-radius: 6px; background: #fbfdfa;
+}
+.liste-notifications__non-lue { background: var(--vert-pale) !important; font-weight: 600; border-left: 4px solid var(--vert-logo); }
+
+.historique-validations { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+
+/* Groupe de champs (départements supervisés) */
+.formulaire__groupe { border: 1px solid var(--gris-bordure); border-radius: 8px; padding: 0.6rem 0.9rem; margin: 0; }
+.formulaire__groupe legend { font-size: 0.85rem; color: var(--vert-fonce); padding: 0 0.4rem; }
+
+/* Absences de l'équipe */
+.badge--en-conge { background: var(--rouge-pale); color: var(--rouge-fonce); }
+.badge--a-venir { background: var(--vert-pale); color: var(--vert-fonce); }
+.filtre { display: flex; flex-direction: row; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: var(--gris-texte); }
+
+/* En-têtes triables de l'annuaire */
+.tri { all: unset; cursor: pointer; font-weight: inherit; color: inherit; display: inline-flex; gap: 0.3rem; align-items: center; }
+.tri:hover { color: var(--rouge-fonce); }
+.tri__fleche { font-size: 0.7rem; opacity: 0.7; }
+.formulaire__aide { align-self: end; margin: 0 0 0.5rem; flex: 2; }
+
+/* Notification cliquable (ouvre la demande) */
+.notification__contenu { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 0.15rem; flex: 1; padding: 0.15rem 0; }
+.notification__contenu:hover .notification__message { text-decoration: underline; }
+.notification__contenu:focus-visible { outline: 3px solid var(--vert-logo); outline-offset: 3px; border-radius: 4px; }
+.notification__message { color: inherit; }
+
+/* Tableaux de chiffres (indicateurs RH) */
+.tableau--chiffres th:not(:first-child), .tableau--chiffres td:not(:first-child) { text-align: right; }
+.tableau--chiffres tfoot th { border-top: 2px solid var(--vert); color: var(--vert-fonce); }
+
+/* Choix oui / non */
+.choix { display: flex; flex-direction: column; gap: 0.35rem; min-width: 180px; }
+.choix__titre { font-size: 0.9rem; color: var(--gris-texte); }
+.choix .case-a-cocher { display: flex; }
+input[type="radio"], input[type="checkbox"] { accent-color: var(--vert); }
+
+/* Cartes cliquables du tableau de bord RH */
+.carte-lien { display: block; color: inherit; text-decoration: none; border-radius: var(--rayon, 10px); }
+.carte-lien:hover .carte, .carte-lien:focus-visible .carte { border-color: var(--rouge); box-shadow: 0 2px 10px rgba(200, 24, 14, 0.18); }
+.carte-lien:focus-visible { outline: 2px solid var(--rouge); outline-offset: 2px; }
+.carte-lien__voir { font-size: 0.85rem; color: var(--rouge); font-weight: 600; }
+
+/* Niveaux de validation d'une demande en attente */
+.progression { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; font-size: 0.9rem; }
+.progression__etape { color: var(--gris-texte); }
+.progression__etape--ok { color: var(--vert-fonce); font-weight: 600; }
+.progression__etape--courante { color: var(--rouge); font-weight: 600; }
+.choix--indisponible { color: var(--gris-texte); opacity: 0.7; }
+
+/* ======================================================================
+   Responsive — tablette et mobile
+   ====================================================================== */
+@media (max-width: 960px) {
+  .entete { padding: 0.5rem 0.9rem; }
+  .entete__lien { padding: 0.45rem 0.5rem; font-size: 0.86rem; }
+}
+
+@media (max-width: 720px) {
+  h1 { font-size: 1.3rem; }
+  .contenu { padding: 1rem 0.75rem; }
+
+  /* En-tête : marque + bouton menu ; navigation et compte repliés */
+  .entete { flex-wrap: wrap; justify-content: space-between; gap: 0.4rem; }
+  .entete__burger {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 44px; min-height: 44px; background: rgba(255,255,255,0.18); color: #fff;
+    border: 1px solid rgba(255,255,255,0.6); border-radius: var(--radius); font-size: 1.3rem; cursor: pointer;
+  }
+  .entete__nav { display: none; flex-basis: 100%; flex-direction: column; gap: 0.2rem; order: 3; }
+  .entete__nav--ouvert { display: flex; }
+  .entete__lien { padding: 0.75rem 0.8rem; font-size: 1rem; }
+  .entete__utilisateur { display: none; flex-basis: 100%; order: 4; justify-content: space-between; padding-top: 0.4rem; border-top: 1px solid rgba(255,255,255,0.35); }
+  .entete__utilisateur--ouvert { display: flex; }
+  .entete__identite { align-items: flex-start; }
+
+  /* Formulaires : champs pleine largeur, 16 px pour éviter le zoom automatique d'iOS */
+  input:not([type]), input[type="text"], input[type="password"], input[type="date"], input[type="number"],
+  input[type="email"], input[type="file"], select { font-size: 16px; width: 100%; max-width: none !important; min-height: 44px; }
+  .formulaire--ligne { flex-direction: column; align-items: stretch; }
+  .formulaire__ligne > label { min-width: 0; flex-basis: 100%; }
+  .formulaire__aide { align-self: stretch; }
+  .filtre { flex-wrap: wrap; }
+  .bouton { min-height: 44px; padding: 0.6rem 1rem; }
+  .carte { padding: 0.9rem; }
+  .carte__entete, .page__entete { flex-wrap: wrap; gap: 0.5rem; }
+  .carte--connexion { max-width: none; margin: 0 0.75rem; }
+  .choix, .validation__action { min-width: 0; }
+  div.tableau__actions .bouton { flex: 1 1 auto; }
+  .liste-notifications li { flex-wrap: wrap; }
+
+  /* Tableaux : chaque ligne devient une carte « libellé : valeur » */
+  .tableau, .tableau tbody, .tableau tfoot, .tableau tr, .tableau td, .tableau th { display: block; width: 100%; }
+  .tableau thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } /* lecteurs d'écran conservés */
+  .tableau tbody tr, .tableau tfoot tr {
+    border: 1px solid var(--gris-bordure); border-radius: var(--radius);
+    margin-bottom: 0.7rem; padding: 0.3rem 0.7rem; background: #fff;
+  }
+  .tableau td, .tableau tfoot th {
+    border-bottom: 1px solid var(--gris-bordure); padding: 0.45rem 0; display: block;
+    text-align: left; overflow-wrap: anywhere;
+  }
+  .tableau td:last-child, .tableau tfoot th:last-child { border-bottom: none; }
+  .tableau td[data-label]::before {
+    content: attr(data-label); display: block; font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 0.03em; font-weight: 600; color: var(--vert-fonce); margin-bottom: 0.15rem;
+  }
+  .tableau td[colspan] { display: block; text-align: left; }
+  .tableau--chiffres th:not(:first-child), .tableau--chiffres td:not(:first-child) { text-align: left; }
+  .tableau__sous-ligne { background: var(--vert-pale); }
+}

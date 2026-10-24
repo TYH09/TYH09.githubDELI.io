@@ -1,0 +1,19 @@
+# Gestionnaire de Congés — dépendances backend
+Django==6.1.1
+djangorestframework==3.18.1
+djangorestframework-simplejwt==5.5.1
+django-filter==26.2
+django-cors-headers==4.9.0
+PyJWT==2.7.0
+asgiref==3.12.1
+sqlparse==0.6.0
+tzdata>=2024.1
+
+# MySQL (cahier des charges : React.js / Django / MySQL) — définir DB_ENGINE=mysql
+# (voir .env.example). Nécessite les en-têtes de dev MySQL/MariaDB sur le système
+# hôte (ex. Ubuntu/Debian : apt install default-libmysqlclient-dev build-essential
+# pkg-config ; macOS : brew install mysql-client pkg-config).
+mysqlclient==2.3.0
+
+# Pour relancer la suite de tests avec mesure de couverture :
+# pip install coverage && coverage run --source='accounts,conges' manage.py test conges && coverage report -m
