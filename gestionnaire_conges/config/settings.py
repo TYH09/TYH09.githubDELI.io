@@ -9,6 +9,11 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+
+DEBUG = False
+ALLOWED_HOSTS = ["TON_USER.pythonanywhere.com"]
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -197,3 +202,5 @@ import sys  # noqa: E402
 
 if "test" in sys.argv[1:2]:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+    
+
