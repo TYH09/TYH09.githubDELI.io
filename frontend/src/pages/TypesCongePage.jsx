@@ -62,7 +62,7 @@ export default function TypesCongePage() {
               <input type="text" required value={form.libelle} onChange={(e) => setForm({ ...form, libelle: e.target.value })} />
             </label>
             <label>
-              Plafond annuel (jours, vide = sans plafond)
+              Plafond annuel (jours acquis par employé et par an ; obligatoire si décompté du solde)
               <input type="number" min="0" value={form.plafond_jours} onChange={(e) => setForm({ ...form, plafond_jours: e.target.value })} />
             </label>
           </div>

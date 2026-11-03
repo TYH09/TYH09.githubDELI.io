@@ -12,6 +12,12 @@ Congé annuel
     ne peut pas prendre de congé annuel : la règle de solde de
     `DemandeConge.verifier_regles_metier` le refuse.
     Le droit est fixé par ces règles : le plafond du type de congé n'intervient pas.
+    Seul le type marqué `est_conge_annuel` suit cette règle.
+
+Autres types décomptés du solde (créés par la RH)
+    Chaque employé actif auquel le type est ouvert (cf. `reserve_a_sexe`) dispose
+    chaque année d'un solde égal au **plafond** du type, sans condition
+    d'ancienneté. Un type décompté du solde sans plafond ne donne aucun solde.
 
 Congé de maternité
     Chaque employée active dispose, chaque année, d'un solde de 90 jours (sans
@@ -32,8 +38,15 @@ STATUTS_ACTIFS = [StatutDemande.EN_ATTENTE_MANAGER, StatutDemande.EN_ATTENTE_DIR
 
 
 def types_conge_annuel():
-    """Congés décomptés du solde annuel (le « Congé annuel »), maternité exclue."""
-    return TypeConge.objects.filter(decompte_solde=True, est_maternite=False)
+    """Le « Congé annuel » légal (règle 18/21 jours)."""
+    return TypeConge.objects.filter(decompte_solde=True, est_conge_annuel=True, est_maternite=False)
+
+
+def types_conge_a_plafond():
+    """Autres types décomptés du solde : le droit annuel est leur plafond."""
+    return TypeConge.objects.filter(
+        decompte_solde=True, est_conge_annuel=False, est_maternite=False, plafond_jours__isnull=False,
+    )
 
 
 def types_conge_maternite():
@@ -44,7 +57,9 @@ def droit_annuel(type_conge, utilisateur):
     """Jours acquis pour l'année par `utilisateur` sur ce type de congé."""
     if type_conge.est_maternite:
         return float(DUREE_MATERNITE_JOURS)
-    return float(utilisateur.droit_conge_annuel())
+    if type_conge.est_conge_annuel:
+        return float(utilisateur.droit_conge_annuel())
+    return float(type_conge.plafond_jours or 0)
 
 
 def _employe_actif(utilisateur):
@@ -58,6 +73,7 @@ def _types_dus(utilisateur):
     dus = []
     if utilisateur.est_eligible_conge_annuel():
         dus.extend(types_conge_annuel())
+    dus.extend(t for t in types_conge_a_plafond() if t.est_ouvert_a(utilisateur))
     if utilisateur.sexe == Sexe.FEMININ:
         dus.extend(types_conge_maternite().filter(decompte_solde=True))
     return dus
@@ -130,6 +146,25 @@ def mettre_a_jour_droits(utilisateur):
     retirer_soldes_non_dus(utilisateur)
     ajuster_soldes_intacts(utilisateur)
     return synchroniser_soldes(utilisateur)
+
+
+def propager_type_conge(type_conge):
+    """Après création ou modification d'un type de congé : le solde affiché doit
+    suivre le plafond défini. Crée les soldes manquants des employés actifs et
+    réaligne ceux de CE type qui sont intacts. Ne supprime jamais un solde et ne
+    touche jamais un solde entamé. Retourne le nombre de soldes réalignés."""
+    annee = timezone.localdate().year
+    realignes = 0
+    for employe in Utilisateur.objects.filter(role=RoleUtilisateur.EMPLOYE, actif=True):
+        synchroniser_soldes(employe)
+        for solde in SoldeConge.objects.filter(utilisateur=employe, type_conge=type_conge, annee__gte=annee):
+            droit = droit_annuel(type_conge, employe)
+            if solde.jours_acquis != droit and _solde_intact(solde):
+                solde.jours_acquis = droit
+                solde.jours_restants = droit
+                solde.save(update_fields=["jours_acquis", "jours_restants"])
+                realignes += 1
+    return realignes
 
 
 def synchroniser_tous():

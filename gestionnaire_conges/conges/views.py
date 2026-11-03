@@ -26,6 +26,7 @@ from .serializers import (
     JournalAuditSerializer, JourFerieSerializer, NotificationSerializer,
     ParametresSystemeSerializer, SoldeCongeSerializer, TypeCongeSerializer,
 )
+from .droits import propager_type_conge
 from .services import WorkflowError, soumettre_demande, valider_niveau
 from .models import NiveauValidation, DecisionValidation
 
@@ -39,9 +40,19 @@ class TypeCongeViewSet(viewsets.ModelViewSet):
     serializer_class = TypeCongeSerializer
     permission_classes = [LectureSeuleOuRHAdmin]
 
+    # Champs qui déterminent qui a droit à quel solde (et de combien).
+    CHAMPS_DROIT = ("plafond_jours", "decompte_solde", "reserve_a_sexe")
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        propager_type_conge(instance)  # le solde de chaque employé apparaît avec le plafond défini
+
     def perform_update(self, serializer):
         avant = {c: getattr(serializer.instance, c) for c in TypeCongeSerializer.SEUILS}
+        avant_droit = {c: getattr(serializer.instance, c) for c in self.CHAMPS_DROIT}
         instance = serializer.save()
+        if any(getattr(instance, c) != v for c, v in avant_droit.items()):
+            propager_type_conge(instance)  # un plafond modifié se répercute sur les soldes non entamés
         apres = {c: getattr(instance, c) for c in TypeCongeSerializer.SEUILS}
         if avant != apres:
             JournalAudit.objects.create(

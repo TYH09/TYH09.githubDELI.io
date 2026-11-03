@@ -48,11 +48,17 @@ class SeuilsParTypeDeCongeTests(BaseV2):
 
     def test_la_rh_cree_un_type_sans_seuils_mais_pas_avec(self):
         self.client.force_authenticate(user=self.rh)
-        r = self.client.post("/api/types-conge/", {"libelle": "Congé formation"}, format="json")
+        r = self.client.post(
+            "/api/types-conge/", {"libelle": "Congé formation", "decompte_solde": False}, format="json"
+        )
         self.assertEqual(r.status_code, 201, r.data)
         self.assertIsNone(r.data["delai_minimum_jours"])
-        r = self.client.post("/api/types-conge/", {"libelle": "Autre", "delai_minimum_jours": 4}, format="json")
+        r = self.client.post(
+            "/api/types-conge/",
+            {"libelle": "Autre", "decompte_solde": False, "delai_minimum_jours": 4}, format="json",
+        )
         self.assertEqual(r.status_code, 400)
+        self.assertIn("delai_minimum_jours", r.data)
 
     def test_la_rh_garde_la_main_sur_la_definition_du_type(self):
         self.patch(self.admin, self.cp, delai_minimum_jours=10)

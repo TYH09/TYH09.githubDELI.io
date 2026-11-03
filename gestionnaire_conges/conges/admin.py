@@ -9,7 +9,7 @@ from .models import (
 @admin.register(TypeConge)
 class TypeCongeAdmin(admin.ModelAdmin):
     list_display = ("libelle", "plafond_jours", "justificatif_obligatoire", "decompte_solde", "reserve_a_sexe",
-                    "delai_minimum_jours", "seuil_alerte_jours")
+                    "est_conge_annuel", "est_maternite", "delai_minimum_jours", "seuil_alerte_jours")
 
 
 @admin.register(SoldeConge)

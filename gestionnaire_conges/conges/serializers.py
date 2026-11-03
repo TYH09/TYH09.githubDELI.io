@@ -27,10 +27,11 @@ class TypeCongeSerializer(serializers.ModelSerializer):
         fields = [
             "id", "libelle", "plafond_jours", "justificatif_obligatoire",
             "regle_acquisition", "decompte_solde", "reserve_a_sexe",
-            "est_maternite", "delai_minimum_jours", "seuil_alerte_jours",
+            "est_maternite", "est_conge_annuel", "delai_minimum_jours", "seuil_alerte_jours",
             "delai_minimum_effectif", "seuil_alerte_effectif",
         ]
-        read_only_fields = ["est_maternite"]  # réglage de structure : migration / admin Django
+        # réglages de structure : migration / admin Django
+        read_only_fields = ["est_maternite", "est_conge_annuel"]
 
     def get_delai_minimum_effectif(self, obj):
         return obj.delai_minimum_effectif()
@@ -49,6 +50,18 @@ class TypeCongeSerializer(serializers.ModelSerializer):
                     {c: "Réservé à l'Administrateur (délai minimum et seuil d'alerte par type de congé)."
                      for c in touches}
                 )
+
+        # Un type décompté du solde donne à chaque employé un solde égal à son plafond :
+        # sans plafond, aucun solde ne pourrait être attribué. (Congé annuel et maternité
+        # ont leur propre règle de droit.)
+        decompte = attrs.get("decompte_solde", getattr(self.instance, "decompte_solde", True))
+        plafond = attrs["plafond_jours"] if "plafond_jours" in attrs else getattr(self.instance, "plafond_jours", None)
+        regle_propre = self.instance is not None and (self.instance.est_conge_annuel or self.instance.est_maternite)
+        if decompte and plafond is None and not regle_propre:
+            raise serializers.ValidationError({
+                "plafond_jours": "Un type décompté du solde doit avoir un plafond annuel : "
+                                 "c'est le nombre de jours acquis par employé et par an."
+            })
         return attrs
 
 

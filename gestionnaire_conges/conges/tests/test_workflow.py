@@ -38,7 +38,10 @@ class BaseWorkflowTestCase(TestCase):
             username="employe", password="x", role=RoleUtilisateur.EMPLOYE,
             matricule="E1", departement=self.departement,
         )
-        self.type_cp = TypeConge.objects.create(libelle="Congé annuel", plafond_jours=18, decompte_solde=True)
+        TypeConge.objects.all().delete()  # la migration conges.0007 crée les types par défaut
+        self.type_cp = TypeConge.objects.create(
+            libelle="Congé annuel", plafond_jours=18, decompte_solde=True, est_conge_annuel=True,
+        )
         SoldeConge.objects.create(
             utilisateur=self.employe, type_conge=self.type_cp, annee=timezone.now().year,
             jours_acquis=18, jours_pris=0, jours_restants=18,

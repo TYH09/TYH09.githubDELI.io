@@ -35,7 +35,7 @@ avec SQLite et un envoi d'e-mails simulé en console.
 
 Une première version du projet (19 tests) a été validée sur MariaDB 10.11
 (migrations, `seed_demo`, tests), sans modification de code — seules des
-variables d'environnement changent. La suite actuelle (219 tests) n'a été
+variables d'environnement changent. La suite actuelle (239 tests) n'a été
 exécutée que sur SQLite : relancer `manage.py test conges` sur votre base
 MySQL avant de déployer.
 
@@ -69,7 +69,7 @@ MySQL avant de déployer.
 ## 2. Lancer les tests
 
 ```bash
-python manage.py test conges          # 219 tests (logique métier + API + RBAC)
+python manage.py test conges          # 239 tests (logique métier + API + RBAC)
 
 # Avec couverture (exigence CDC §8/§14.2 : ≥ 30 % sur le code critique) :
 pip install coverage
@@ -134,7 +134,7 @@ gère les jours fériés, et dispose d'un tableau de bord — voir §7.
 | §6.6 Notifications à chaque étape | `conges.Notification` + envoi e-mail (backend console en dev) |
 | §6.5 Comptes utilisateurs (Administrateur) | `UtilisateurViewSet` (création réservée au rôle Administrateur) |
 | §6.5 Délai minimum / seuils d'alerte configurables | `conges.ParametresSysteme` + `ParametresSystemeView` (valeurs par défaut) et `TypeConge.delai_minimum_jours` / `seuil_alerte_jours` (par type, Admin) |
-| §8 Couverture de tests ≥ 30 % | 219 tests (voir §2 pour la couverture) |
+| §8 Couverture de tests ≥ 30 % | 239 tests (voir §2 pour la couverture) |
 
 ## 6. Principaux endpoints API
 
@@ -231,7 +231,9 @@ Toutes les routes (sauf `/api/auth/token/`) exigent l'en-tête
   en années) : **6 ans ou moins → 21 jours**, **plus de 6 ans → 18 jours** (la
   majoration ne s'applique que si elle a l'ancienneté requise). La réponse est
   obligatoire pour une employée ; pour un homme ou un autre rôle, ces champs
-  sont vides. Le plafond du type de congé n'intervient pas dans ce calcul.
+  sont vides. Le plafond du type de congé n'intervient pas dans ce calcul : seul
+  le type marqué `est_conge_annuel` (réglage de structure, non modifiable par
+  l'API) suit cette règle des 18/21 jours.
   Le solde de l'année est créé automatiquement : à la
   création/modification du compte, à la connexion (`/api/auth/me/`), à la
   soumission d'une demande, et par la commande
@@ -240,6 +242,19 @@ Toutes les routes (sauf `/api/auth/token/`) exigent l'en-tête
   intact (sans aucune demande) est réaligné si le compte change (date d'entrée,
   enfant…) ; un solde déjà utilisé n'est jamais modifié. L'âge du dernier enfant
   est une valeur saisie : il n'est pas mis à jour automatiquement d'une année à l'autre.
+- **Types de congé par défaut (production comprise)** : la migration
+  `conges.0007` crée automatiquement, s'ils n'existent pas, *Congé annuel*,
+  *Congé maladie*, *Congé de paternité* et *Congé de maternité* avec leurs règles
+  (plafond, justificatif, réservation à un sexe, décompte du solde). Elle ne modifie
+  aucun type existant : un type renommé par la RH n'est pas dupliqué. Plus besoin de
+  `seed_demo` (réservé à la démonstration : comptes aux mots de passe connus) pour
+  les obtenir ; un simple `python manage.py migrate` suffit.
+- **Autres types décomptés du solde (créés par la RH)** : chaque employé actif à
+  qui le type est ouvert (cf. « Réservé à un sexe ») reçoit un solde annuel égal au
+  **plafond du type**, sans condition d'ancienneté. Le solde apparaît dès la
+  création du type ; un plafond modifié réaligne les soldes non entamés (jamais ceux
+  déjà utilisés). Un type décompté du solde **doit** avoir un plafond (l'API refuse
+  sinon) ; un type non décompté (ex. maladie) n'en a pas besoin.
 - **Pas de solde, pas de congé annuel** : un employé sans solde pour l'année de
   la demande ne peut pas poser un congé annuel. L'API répond 400 avec un message
   explicite (pas de date d'entrée / moins d'un an d'ancienneté / aucun solde).

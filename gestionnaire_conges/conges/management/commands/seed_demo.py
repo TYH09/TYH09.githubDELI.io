@@ -12,7 +12,8 @@ from django.utils import timezone
 
 from accounts.models import Departement, FonctionDirection, RoleUtilisateur, Utilisateur
 from conges.droits import mettre_a_jour_droits
-from conges.models import JourFerie, ParametresSysteme, SoldeConge, TypeConge
+from conges.models import JourFerie, ParametresSysteme
+from conges.types_defaut import assurer_types_par_defaut
 
 JOURS_FERIES_CAMEROUN_2026 = [
     (date(2026, 1, 1), "Jour de l'An"),
@@ -36,28 +37,9 @@ class Command(BaseCommand):
         for d, libelle in JOURS_FERIES_CAMEROUN_2026:
             JourFerie.objects.get_or_create(date=d, defaults={"libelle": libelle, "recurrent": True})
 
-        cp, _ = TypeConge.objects.get_or_create(
-            libelle="Congé annuel",
-            defaults=dict(plafond_jours=21, justificatif_obligatoire=False, decompte_solde=True,
-                          regle_acquisition="18 j/an, 21 j si le dernier enfant a 6 ans ou moins ; dès 1 an d'ancienneté"),
-        )
-        TypeConge.objects.get_or_create(
-            libelle="Congé maladie",
-            defaults=dict(plafond_jours=None, justificatif_obligatoire=True,
-                          regle_acquisition="sur justificatif médical", decompte_solde=False),
-        )
-        TypeConge.objects.get_or_create(
-            libelle="Congé de paternité",
-            defaults=dict(plafond_jours=3, justificatif_obligatoire=True,
-                          regle_acquisition="forfaitaire à la naissance", decompte_solde=False,
-                          reserve_a_sexe="M"),
-        )
-        TypeConge.objects.get_or_create(
-            libelle="Congé de maternité",
-            defaults=dict(plafond_jours=90, justificatif_obligatoire=True, decompte_solde=True,
-                          est_maternite=True, reserve_a_sexe="F",
-                          regle_acquisition="3 mois par an, pris en 1, 2 ou 3 mois à la fois (30 jours décomptés par mois)"),
-        )
+        # Déjà créés par la migration conges.0007 (donc aussi en production) ; on les
+        # recrée ici seulement s'ils ont été supprimés.
+        assurer_types_par_defaut()
 
         production, _ = Departement.objects.get_or_create(nom="Production")
         rh_dep, _ = Departement.objects.get_or_create(nom="Ressources Humaines")

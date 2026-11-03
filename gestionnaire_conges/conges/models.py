@@ -131,6 +131,12 @@ class TypeConge(models.Model):
         help_text="Congé de maternité : 3 mois (90 jours calendaires) par an, pris en 1, 2 ou 3 mois à la fois "
                   "dans la limite du solde restant ; la date de fin est calculée.",
     )
+    est_conge_annuel = models.BooleanField(
+        default=False,
+        help_text="Congé annuel légal : le droit n'est pas le plafond mais 18 jours par an (21 pour une femme "
+                  "dont le dernier enfant a 6 ans ou moins), dès 1 an d'ancienneté. Réglage de structure : "
+                  "les autres types décomptés du solde donnent droit à leur plafond annuel.",
+    )
     delai_minimum_jours = models.PositiveIntegerField(
         null=True, blank=True, validators=[MaxValueValidator(365)],
         help_text="Délai minimum (en jours) entre la soumission et le début du congé, propre à ce type. "
@@ -152,8 +158,8 @@ class TypeConge(models.Model):
 
     @property
     def est_annuel(self):
-        """Congé décompté du solde annuel (hors maternité) : « Congé annuel »."""
-        return self.decompte_solde and not self.est_maternite
+        """Le « Congé annuel » légal (règle des 18/21 jours)."""
+        return self.est_conge_annuel
 
     def delai_minimum_effectif(self):
         """Délai minimum applicable : celui du type, sinon le paramètre système."""

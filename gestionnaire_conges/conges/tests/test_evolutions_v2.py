@@ -66,7 +66,10 @@ class BaseV2(APITestCase):
         self.emp_compta = creer("emp_compta", RoleUtilisateur.EMPLOYE, departement=self.compta, sexe="F")
         self.emp_logi = creer("emp_logi", RoleUtilisateur.EMPLOYE, departement=self.logistique, sexe="M")
 
-        self.cp = TypeConge.objects.create(libelle="Congé annuel", plafond_jours=18, decompte_solde=True)
+        TypeConge.objects.all().delete()  # la migration conges.0007 crée les types par défaut
+        self.cp = TypeConge.objects.create(
+            libelle="Congé annuel", plafond_jours=18, decompte_solde=True, est_conge_annuel=True,
+        )
         self.mat = TypeConge.objects.create(
             libelle="Congé de maternité", plafond_jours=90, decompte_solde=False,
             justificatif_obligatoire=True, reserve_a_sexe="F",
@@ -157,7 +160,8 @@ class SexeEtCongesReservesTests(BaseV2):
     def test_rh_peut_reserver_un_type_a_un_sexe(self):
         self.client.force_authenticate(user=self.rh)
         resp = self.client.post(
-            "/api/types-conge/", {"libelle": "Congé allaitement", "reserve_a_sexe": "F"}, format="json"
+            "/api/types-conge/",
+            {"libelle": "Congé allaitement", "reserve_a_sexe": "F", "decompte_solde": False}, format="json",
         )
         self.assertEqual(resp.status_code, 201, resp.data)
         self.assertEqual(resp.data["reserve_a_sexe"], "F")
