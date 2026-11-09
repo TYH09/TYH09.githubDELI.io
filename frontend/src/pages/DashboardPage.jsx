@@ -176,7 +176,7 @@ export default function DashboardPage() {
 
   return (
     <div className="page">
-      <h1>Bonjour {profil.first_name} 👋</h1>
+      <h1>Salut {profil.first_name} 👋</h1>
       {profil.role === 'EMPLOYE' && <TableauEmploye />}
       {profil.role === 'MANAGER' && (
         <div className="grille-cartes">
