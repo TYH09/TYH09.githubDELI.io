@@ -14,7 +14,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import Departement, FonctionDirection, RoleUtilisateur, Utilisateur
-from conges.models import JournalAudit, Notification, SoldeConge, TypeConge
+from conges.models import JournalAudit, JourFerie, Notification, SoldeConge, TypeConge
 
 MDP = "Pass#1234"
 PDF = b"%PDF-1.4\n%contenu de test\n"
@@ -67,6 +67,7 @@ class BaseV2(APITestCase):
         self.emp_logi = creer("emp_logi", RoleUtilisateur.EMPLOYE, departement=self.logistique, sexe="M")
 
         TypeConge.objects.all().delete()  # la migration conges.0007 crée les types par défaut
+        JourFerie.objects.all().delete()  # idem conges.0008 : sinon les tests dépendraient de la date du jour
         self.cp = TypeConge.objects.create(
             libelle="Congé annuel", plafond_jours=18, decompte_solde=True, est_conge_annuel=True,
         )

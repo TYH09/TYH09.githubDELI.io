@@ -34,6 +34,6 @@ Connexion avec `e.employe`, `j.manager`, `p.directeur`, `r.rh` ou `a.admin`
 
 ## Vérifications
 
-- Backend : `python manage.py test conges` (239 tests)
+- Backend : `python manage.py test conges` (255 tests)
 - Frontend : `npm run lint && npm run build`
 - Bout en bout : `python3 frontend/e2e/parcours_complet.py` (serveurs lancés)

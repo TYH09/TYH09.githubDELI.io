@@ -266,7 +266,8 @@ class DemandeConge(models.Model):
     # -- Règles métier --------------------------------------------------
     def calculer_jours_ouvres(self):
         """Équivalent de DemandeConge.calculerJoursOuvres() : exclut les
-        week-ends et les jours fériés déclarés (CDC §14.1)."""
+        week-ends et les jours fériés déclarés (CDC §14.1). Un jour férié
+        récurrent tombe à la même date chaque année (comme dans `date_de_retour`)."""
         if self.date_fin < self.date_debut:
             return 0
         feries = set(
@@ -274,10 +275,13 @@ class DemandeConge(models.Model):
                 date__gte=self.date_debut, date__lte=self.date_fin
             ).values_list("date", flat=True)
         )
+        recurrents = {
+            (d.month, d.day) for d in JourFerie.objects.filter(recurrent=True).values_list("date", flat=True)
+        }
         jours = 0
         jour = self.date_debut
         while jour <= self.date_fin:
-            if jour.weekday() < 5 and jour not in feries:  # 0=lundi ... 4=vendredi
+            if jour.weekday() < 5 and jour not in feries and (jour.month, jour.day) not in recurrents:  # 0=lundi ... 4=vendredi
                 jours += 1
             jour += timedelta(days=1)
         return float(jours)

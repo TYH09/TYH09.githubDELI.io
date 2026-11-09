@@ -35,7 +35,7 @@ avec SQLite et un envoi d'e-mails simulé en console.
 
 Une première version du projet (19 tests) a été validée sur MariaDB 10.11
 (migrations, `seed_demo`, tests), sans modification de code — seules des
-variables d'environnement changent. La suite actuelle (239 tests) n'a été
+variables d'environnement changent. La suite actuelle (255 tests) n'a été
 exécutée que sur SQLite : relancer `manage.py test conges` sur votre base
 MySQL avant de déployer.
 
@@ -69,7 +69,7 @@ MySQL avant de déployer.
 ## 2. Lancer les tests
 
 ```bash
-python manage.py test conges          # 239 tests (logique métier + API + RBAC)
+python manage.py test conges          # 255 tests (logique métier + API + RBAC)
 
 # Avec couverture (exigence CDC §8/§14.2 : ≥ 30 % sur le code critique) :
 pip install coverage
@@ -90,7 +90,8 @@ coverage report -m    # 97 % sur accounts+conges au moment de la livraison
 
 La commande crée aussi : les types de congés courants (congé annuel,
 maladie, paternité, maternité), les jours fériés camerounais
-2026, et un solde de 18 jours pour l'employé de démo (plus d'un an d'ancienneté).
+(ces deux jeux de données sont déjà créés par `migrate`, la commande les recrée
+seulement s'ils ont été supprimés), et un solde de 18 jours pour l'employé de démo (plus d'un an d'ancienneté).
 `c.recrue` n'a volontairement aucun solde.
 
 ## 4. Le workflow implémenté — circuit à DEUX niveaux
@@ -134,7 +135,7 @@ gère les jours fériés, et dispose d'un tableau de bord — voir §7.
 | §6.6 Notifications à chaque étape | `conges.Notification` + envoi e-mail (backend console en dev) |
 | §6.5 Comptes utilisateurs (Administrateur) | `UtilisateurViewSet` (création réservée au rôle Administrateur) |
 | §6.5 Délai minimum / seuils d'alerte configurables | `conges.ParametresSysteme` + `ParametresSystemeView` (valeurs par défaut) et `TypeConge.delai_minimum_jours` / `seuil_alerte_jours` (par type, Admin) |
-| §8 Couverture de tests ≥ 30 % | 239 tests (voir §2 pour la couverture) |
+| §8 Couverture de tests ≥ 30 % | 255 tests (voir §2 pour la couverture) |
 
 ## 6. Principaux endpoints API
 
@@ -255,6 +256,18 @@ Toutes les routes (sauf `/api/auth/token/`) exigent l'en-tête
   création du type ; un plafond modifié réaligne les soldes non entamés (jamais ceux
   déjà utilisés). Un type décompté du solde **doit** avoir un plafond (l'API refuse
   sinon) ; un type non décompté (ex. maladie) n'en a pas besoin.
+- **Jours fériés par défaut (production comprise)** : la migration `conges.0008`
+  crée automatiquement les jours fériés du Cameroun (Jour de l'An, Fête de la
+  Jeunesse, Vendredi Saint, Fête du Travail, Fête Nationale, Assomption, Noël), sans
+  `seed_demo`. Elle ne modifie ni ne duplique aucun jour existant (même date, ou même
+  jour et mois pour deux jours récurrents). Les fêtes à date fixe sont
+  **récurrentes** : elles valent chaque année. Le **Vendredi Saint est une fête
+  mobile**, donc non récurrente : la RH ajoute chaque année sa date dans
+  « Jours fériés », ainsi que les fêtes religieuses variables (Ascension,
+  Tabaski, etc.) qui ne sont pas fournies d'office.
+- **Jours fériés récurrents et jours ouvrés** : un jour férié marqué « récurrent »
+  est exclu du décompte des jours ouvrés **chaque année** à la même date, pas
+  seulement l'année saisie (comme pour la date de retour).
 - **Pas de solde, pas de congé annuel** : un employé sans solde pour l'année de
   la demande ne peut pas poser un congé annuel. L'API répond 400 avec un message
   explicite (pas de date d'entrée / moins d'un an d'ancienneté / aucun solde).

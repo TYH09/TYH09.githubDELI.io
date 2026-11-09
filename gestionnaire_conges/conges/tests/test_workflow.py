@@ -39,6 +39,7 @@ class BaseWorkflowTestCase(TestCase):
             matricule="E1", departement=self.departement,
         )
         TypeConge.objects.all().delete()  # la migration conges.0007 crée les types par défaut
+        JourFerie.objects.all().delete()  # idem conges.0008 : sinon les tests dépendraient de la date du jour
         self.type_cp = TypeConge.objects.create(
             libelle="Congé annuel", plafond_jours=18, decompte_solde=True, est_conge_annuel=True,
         )

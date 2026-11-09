@@ -12,19 +12,9 @@ from django.utils import timezone
 
 from accounts.models import Departement, FonctionDirection, RoleUtilisateur, Utilisateur
 from conges.droits import mettre_a_jour_droits
-from conges.models import JourFerie, ParametresSysteme
+from conges.jours_feries_defaut import assurer_jours_feries_par_defaut
+from conges.models import ParametresSysteme
 from conges.types_defaut import assurer_types_par_defaut
-
-JOURS_FERIES_CAMEROUN_2026 = [
-    (date(2026, 1, 1), "Jour de l'An"),
-    (date(2026, 2, 11), "Fête de la Jeunesse"),
-    (date(2026, 4, 3), "Vendredi Saint"),
-    (date(2026, 5, 1), "Fête du Travail"),
-    (date(2026, 5, 20), "Fête Nationale"),
-    (date(2026, 8, 15), "Assomption"),
-    (date(2026, 12, 25), "Noël"),
-]
-
 
 class Command(BaseCommand):
     help = "Peuple la base avec des données de démonstration pour le Gestionnaire de Congés."
@@ -34,11 +24,10 @@ class Command(BaseCommand):
 
         ParametresSysteme.actuels()
 
-        for d, libelle in JOURS_FERIES_CAMEROUN_2026:
-            JourFerie.objects.get_or_create(date=d, defaults={"libelle": libelle, "recurrent": True})
-
-        # Déjà créés par la migration conges.0007 (donc aussi en production) ; on les
-        # recrée ici seulement s'ils ont été supprimés.
+        # Types de congé (migration conges.0007) et jours fériés (conges.0008) sont déjà
+        # créés par `migrate`, donc aussi en production ; on les recrée ici seulement
+        # s'ils ont été supprimés.
+        assurer_jours_feries_par_defaut()
         assurer_types_par_defaut()
 
         production, _ = Departement.objects.get_or_create(nom="Production")
