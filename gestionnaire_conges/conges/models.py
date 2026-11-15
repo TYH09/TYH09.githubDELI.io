@@ -8,6 +8,7 @@ minimums de soumission et les seuils d'alerte").
 
 Workflow à DEUX niveaux (CDC v1.1 §2.2, §4.1, §5, §7) :
     BROUILLON -> EN_ATTENTE_MANAGER -> EN_ATTENTE_DIRECTION -> VALIDEE
+    (1 niveau pour chef de département/RH : EN_ATTENTE_DIRECTION ; directeur : EN_ATTENTE_RH)
                                    \-> REFUSEE            \-> REFUSEE
 Un refus à n'importe quel niveau clôt immédiatement la demande.
 """
@@ -99,6 +100,24 @@ def date_de_retour(derniere_date_absence):
     return jour
 
 
+DUREE_PATERNITE_JOURS = 3  # congé de paternité : 3 jours ouvrés au maximum
+
+
+def date_fin_paternite(date_debut):
+    """Dernier jour d'un congé de paternité commençant à `date_debut` : le 3e jour
+    ouvré (week-ends et jours fériés exclus ; un férié récurrent tombe à la même date
+    chaque année), `date_debut` comprise si elle est ouvrée."""
+    exacts = set(JourFerie.objects.filter(date__gte=date_debut).values_list("date", flat=True))
+    recurrents = {(j.date.month, j.date.day) for j in JourFerie.objects.filter(recurrent=True)}
+    jour, compte = date_debut, 0
+    while True:
+        if jour.weekday() < 5 and jour not in exacts and (jour.month, jour.day) not in recurrents:
+            compte += 1
+            if compte == DUREE_PATERNITE_JOURS:
+                return jour
+        jour += timedelta(days=1)
+
+
 # ---------------------------------------------------------------------------
 # Types de congés
 # ---------------------------------------------------------------------------
@@ -155,6 +174,12 @@ class TypeConge(models.Model):
 
     def __str__(self):
         return self.libelle
+
+    @property
+    def est_paternite(self):
+        """Congé de paternité : réservé aux hommes, 3 jours ouvrés au maximum,
+        date de fin calculée à partir de la date de départ."""
+        return "paternit" in self.libelle.lower() and self.reserve_a_sexe == "M"
 
     @property
     def est_annuel(self):
@@ -222,9 +247,20 @@ class StatutDemande(models.TextChoices):
     BROUILLON = "BROUILLON", "Brouillon"
     EN_ATTENTE_MANAGER = "EN_ATTENTE_MANAGER", "En attente du chef de département"
     EN_ATTENTE_DIRECTION = "EN_ATTENTE_DIRECTION", "En attente de la Direction Générale"
+    EN_ATTENTE_RH = "EN_ATTENTE_RH", "En attente du responsable RH"
     VALIDEE = "VALIDEE", "Validée"
     REFUSEE = "REFUSEE", "Refusée"
     ANNULEE = "ANNULEE", "Annulée"
+
+
+# Statuts d'une demande « vivante » : en cours de validation ou déjà validée
+# (elles comptent pour le chevauchement et le solde engagé).
+STATUTS_EN_ATTENTE = [
+    StatutDemande.EN_ATTENTE_MANAGER,
+    StatutDemande.EN_ATTENTE_DIRECTION,
+    StatutDemande.EN_ATTENTE_RH,
+]
+STATUTS_VIVANTS = STATUTS_EN_ATTENTE + [StatutDemande.VALIDEE]
 
 
 class RegleMetierError(ValidationError):
@@ -321,6 +357,12 @@ class DemandeConge(models.Model):
             reserve = "aux femmes" if self.type_conge.reserve_a_sexe == "F" else "aux hommes"
             raise RegleMetierError(f"Le type de congé « {self.type_conge} » est réservé {reserve}.")
 
+        if self.type_conge.est_paternite and self.date_fin >= self.date_debut:
+            if self.calculer_jours_ouvres() > DUREE_PATERNITE_JOURS:
+                raise RegleMetierError(
+                    f"Le congé de paternité ne peut pas dépasser {DUREE_PATERNITE_JOURS} jours ouvrés."
+                )
+
         if self.type_conge.est_maternite:
             if self.duree_maternite_mois not in range(1, MOIS_MATERNITE_MAX + 1):
                 raise RegleMetierError("Choisissez la durée du congé de maternité : 1, 2 ou 3 mois.")
@@ -343,11 +385,7 @@ class DemandeConge(models.Model):
         # Chevauchement avec une autre demande active du même employé
         chevauchement = DemandeConge.objects.filter(
             utilisateur=utilisateur_cible,
-            statut__in=[
-                StatutDemande.EN_ATTENTE_MANAGER,
-                StatutDemande.EN_ATTENTE_DIRECTION,
-                StatutDemande.VALIDEE,
-            ],
+            statut__in=STATUTS_VIVANTS,
             date_debut__lte=self.date_fin,
             date_fin__gte=self.date_debut,
         ).exclude(pk=self.pk)
@@ -361,9 +399,7 @@ class DemandeConge(models.Model):
                 d.nb_jours_decomptes for d in DemandeConge.objects.filter(
                     utilisateur=utilisateur_cible, type_conge=self.type_conge,
                     date_debut__year=self.date_debut.year,
-                    statut__in=[
-                        StatutDemande.EN_ATTENTE_MANAGER, StatutDemande.EN_ATTENTE_DIRECTION, StatutDemande.VALIDEE,
-                    ],
+                    statut__in=STATUTS_VIVANTS,
                 ).exclude(pk=self.pk)
             )
             restants = DUREE_MATERNITE_JOURS - engages
@@ -418,9 +454,21 @@ class DemandeConge(models.Model):
         self.nb_jours_ouvres = self.calculer_jours_ouvres()
         self.nb_jours_decomptes = self.calculer_jours_decomptes()
         self.verifier_regles_metier()
-        self.statut = StatutDemande.EN_ATTENTE_MANAGER
+        self.statut = self.statut_initial()
         self.save()
         return self
+
+    def statut_initial(self):
+        """Premier (et parfois seul) niveau de validation selon le rôle du
+        demandeur : l'employé passe par son chef de département ; le chef de
+        département et le RH sont validés à 1 niveau par un directeur ; le
+        directeur est validé à 1 niveau par le responsable RH."""
+        role = self.utilisateur.role
+        if role == "DIRECTEUR":
+            return StatutDemande.EN_ATTENTE_RH
+        if role in ("MANAGER", "RH"):
+            return StatutDemande.EN_ATTENTE_DIRECTION
+        return StatutDemande.EN_ATTENTE_MANAGER
 
     def annuler(self):
         """Équivalent de DemandeConge.annuler() — possible tant que la
@@ -438,6 +486,7 @@ class DemandeConge(models.Model):
 class NiveauValidation(models.TextChoices):
     MANAGER = "MANAGER", "Chef de département"
     DIRECTION = "DIRECTION", "Direction Générale"
+    RH = "RH", "Responsable RH"
 
 
 class DecisionValidation(models.TextChoices):

@@ -86,7 +86,7 @@ class EnfantEtDroitAnnuelTests(BaseV2):
 
     def test_dernier_enfant_de_moins_de_6_ans_et_nouveau_ne_21_jours(self):
         for age, nom in ((0, "bebe"), (3, "petit")):
-            self.assertEqual(self.creer(username=nom, matricule=nom, email=f"{nom}@v.local",
+            self.assertEqual(self.creer(username=nom, matricule=nom.upper() + "12345", email=f"{nom}@v.local",
                                         a_enfant=True, age_dernier_enfant=age).status_code, 201)
             self.assertEqual(self.solde(nom).jours_acquis, 21, nom)
 
@@ -104,7 +104,7 @@ class EnfantEtDroitAnnuelTests(BaseV2):
         r = self.creer(a_enfant=True, age_dernier_enfant=2)
         self.assertEqual(r.data["droit_conge_annuel"], 21)
         self.assertEqual(r.data["age_dernier_enfant"], 2)
-        r = self.creer(username="autre", matricule="A2", email="a@v.local", a_enfant=False)
+        r = self.creer(username="autre", matricule="AUTRE0002", email="a@v.local", a_enfant=False)
         self.assertEqual(r.data["droit_conge_annuel"], 18)
 
     # --- Modification -------------------------------------------------------

@@ -3,6 +3,8 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import api from '../api/client'
 import RoleBadge from './RoleBadge'
+import LangueSwitch from './LangueSwitch'
+import { useI18n } from '../i18n/I18nContext'
 
 /**
  * Liens de navigation par rôle — reflète le RBAC de l'API : chaque lien
@@ -18,12 +20,18 @@ function liensPourRole(role) {
   const specifiques = {
     EMPLOYE: [{ to: '/mes-demandes', label: 'Mes demandes' }],
     MANAGER: [
+      { to: '/mes-demandes', label: 'Mes demandes' },
       { to: '/validations/manager', label: 'Demandes à valider' },
       { to: '/equipe', label: 'Mon équipe' },
       { to: '/absences', label: 'Absences' },
     ],
-    DIRECTEUR: [{ to: '/validations/direction', label: 'Demandes à valider' }],
+    DIRECTEUR: [
+      { to: '/mes-demandes', label: 'Mes demandes' },
+      { to: '/validations/direction', label: 'Demandes à valider' },
+    ],
     RH: [
+      { to: '/mes-demandes', label: 'Mes demandes' },
+      { to: '/validations/rh', label: 'Demandes à valider' },
       { to: '/rh/dashboard', label: 'Indicateurs RH' },
       { to: '/rh/types-conge', label: 'Types de congés' },
       { to: '/rh/jours-feries', label: 'Jours fériés' },
@@ -81,6 +89,7 @@ export default function Layout() {
   const [menuOuvert, setMenuOuvert] = useState(false)
   const contenuRef = useRef(null)
   useTableauxResponsives(contenuRef)
+  const { t } = useI18n()
   const { profil, deconnecter } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -115,12 +124,12 @@ export default function Layout() {
       <header className="entete">
         <div className="entete__marque">
           <span className="entete__logo">GC</span>
-          <span>Gestionnaire de Congés</span>
+          <span>{t('Gestionnaire de Congés')}</span>
         </div>
         <button
           type="button"
           className="entete__burger"
-          aria-label="Menu"
+          aria-label={t('Menu')}
           aria-expanded={menuOuvert}
           aria-controls="navigation-principale"
           onClick={() => setMenuOuvert((o) => !o)}
@@ -135,7 +144,7 @@ export default function Layout() {
               end={lien.to === '/'}
               className={({ isActive }) => 'entete__lien' + (isActive ? ' entete__lien--actif' : '')}
             >
-              {lien.label}
+              {t(lien.label)}
               {lien.to === '/notifications' && notificationsNonLues > 0 && (
                 <span className="pastille">{notificationsNonLues}</span>
               )}
@@ -143,12 +152,13 @@ export default function Layout() {
           ))}
         </nav>
         <div className={'entete__utilisateur' + (menuOuvert ? ' entete__utilisateur--ouvert' : '')}>
+          <LangueSwitch />
           <div className="entete__identite">
             <strong>{profil.first_name} {profil.last_name}</strong>
             <RoleBadge role={profil.role} />
           </div>
           <button className="bouton bouton--discret" onClick={handleDeconnexion}>
-            Déconnexion
+            {t('Déconnexion')}
           </button>
         </div>
       </header>

@@ -260,3 +260,24 @@ input[type="radio"], input[type="checkbox"] { accent-color: var(--vert); }
   .tableau--chiffres th:not(:first-child), .tableau--chiffres td:not(:first-child) { text-align: left; }
   .tableau__sous-ligne { background: var(--vert-pale); }
 }
+
+/* Champ mot de passe avec bascule afficher / masquer */
+.champ-mdp { position: relative; display: block; }
+.champ-mdp input { width: 100%; padding-right: 2.6rem; }
+.champ-mdp__bascule {
+  position: absolute; top: 50%; right: .35rem; transform: translateY(-50%);
+  border: 0; background: transparent; cursor: pointer; line-height: 0; padding: .35rem .4rem; color: #4b5648; display: inline-flex;
+}
+.champ-mdp__bascule:hover { color: #c8180e; }
+.champ-mdp__bascule:focus-visible { outline: 2px solid #e0200f; border-radius: 4px; }
+
+/* Bouton de langue FR / EN */
+.bouton--langue {
+  display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; font: inherit; font-weight: 600;
+  border-radius: 999px; padding: .3rem .8rem; white-space: nowrap;
+}
+.bouton--langue-entete { background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.55); }
+.bouton--langue-entete:hover { background: rgba(255,255,255,.28); }
+.bouton--langue-clair { background: #fff; color: #14520a; border: 1px solid #14520a; }
+.bouton--langue-clair:hover { background: #eaf8e6; }
+.page-connexion__langue { position: fixed; top: 1rem; right: 1rem; z-index: 5; }

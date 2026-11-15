@@ -4,10 +4,12 @@ import api, { messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 const ANNEE_COURANTE = new Date().getFullYear()
 
 export default function RHEmployesSansCongePage() {
+  const { t } = useI18n()
   const [donnees, setDonnees] = useState(null)
   const [erreur, setErreur] = useState('')
 
@@ -22,27 +24,27 @@ export default function RHEmployesSansCongePage() {
 
   // Regroupement par département pour une lecture rapide.
   const parDepartement = donnees.results.reduce((acc, e) => {
-    const cle = e.departement || 'Sans département'
+    const cle = e.departement || t('Sans département')
     ;(acc[cle] = acc[cle] || []).push(e)
     return acc
   }, {})
 
   return (
     <div className="page">
-      <p><Link to="/rh/dashboard">← Indicateurs RH</Link></p>
-      <h1>Employés éligibles sans congé annuel validé — {donnees.annee}</h1>
+      <p><Link to="/rh/dashboard">{t('← Indicateurs RH')}</Link></p>
+      <h1>{t('Employés éligibles sans congé annuel validé — {annee}', { annee: donnees.annee })}</h1>
       <p className="texte-discret">
-        Employés ayant au moins un an d’ancienneté et aucun congé annuel validé cette année : {donnees.count}.
+        {t('Employés ayant au moins un an d’ancienneté et aucun congé annuel validé cette année : {n}.', { n: donnees.count })}
       </p>
       {donnees.count === 0 ? (
-        <Carte><p className="texte-discret">Tous les employés éligibles ont déjà pris un congé annuel.</p></Carte>
+        <Carte><p className="texte-discret">{t('Tous les employés éligibles ont déjà pris un congé annuel.')}</p></Carte>
       ) : (
-        <Carte titre="Liste des employés">
+        <Carte titre={t('Liste des employés')}>
           <table className="tableau">
             <thead>
               <tr>
-                <th>Employé</th><th>Matricule</th><th>Département</th><th>Ancienneté</th>
-                <th>Droit annuel</th><th>Jours restants</th>
+                <th>{t('Employé')}</th><th>{t('Matricule')}</th><th>{t('Département')}</th><th>{t('Ancienneté')}</th>
+                <th>{t('Droit annuel')}</th><th>{t('Jours restants')}</th>
               </tr>
             </thead>
             <tbody>
@@ -51,8 +53,8 @@ export default function RHEmployesSansCongePage() {
                   <td>{e.nom_complet}</td>
                   <td>{e.matricule}</td>
                   <td>{dep}</td>
-                  <td>{e.anciennete_annees} an{e.anciennete_annees > 1 ? 's' : ''}</td>
-                  <td>{e.droit_conge_annuel} j</td>
+                  <td>{e.anciennete_annees > 1 ? t('{n} ans', { n: e.anciennete_annees }) : t('{n} an', { n: e.anciennete_annees })}</td>
+                  <td>{t('{n} j', { n: e.droit_conge_annuel })}</td>
                   <td>{e.jours_restants ?? '—'}</td>
                 </tr>
               )))}

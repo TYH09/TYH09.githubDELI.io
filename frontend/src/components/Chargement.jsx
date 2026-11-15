@@ -1,3 +1,6 @@
+import { useI18n } from '../i18n/I18nContext'
+
 export default function Chargement({ libelle = 'Chargement…' }) {
-  return <p className="chargement">{libelle}</p>
+  const { t } = useI18n()
+  return <p className="chargement">{t(libelle)}</p>
 }

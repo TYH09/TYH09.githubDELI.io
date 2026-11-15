@@ -30,11 +30,11 @@ pour les employés qui franchissent leur premier anniversaire).
 """
 from django.utils import timezone
 
-from accounts.models import RoleUtilisateur, Sexe, Utilisateur
+from accounts.models import ROLES_AVEC_CONGES, Sexe, Utilisateur
 
-from .models import DUREE_MATERNITE_JOURS, DemandeConge, SoldeConge, StatutDemande, TypeConge
+from .models import DUREE_MATERNITE_JOURS, STATUTS_VIVANTS, DemandeConge, SoldeConge, TypeConge
 
-STATUTS_ACTIFS = [StatutDemande.EN_ATTENTE_MANAGER, StatutDemande.EN_ATTENTE_DIRECTION, StatutDemande.VALIDEE]
+STATUTS_ACTIFS = STATUTS_VIVANTS
 
 
 def types_conge_annuel():
@@ -63,7 +63,7 @@ def droit_annuel(type_conge, utilisateur):
 
 
 def _employe_actif(utilisateur):
-    return utilisateur.role == RoleUtilisateur.EMPLOYE and utilisateur.actif
+    return utilisateur.role in ROLES_AVEC_CONGES and utilisateur.actif
 
 
 def _types_dus(utilisateur):
@@ -155,7 +155,7 @@ def propager_type_conge(type_conge):
     touche jamais un solde entamé. Retourne le nombre de soldes réalignés."""
     annee = timezone.localdate().year
     realignes = 0
-    for employe in Utilisateur.objects.filter(role=RoleUtilisateur.EMPLOYE, actif=True):
+    for employe in Utilisateur.objects.filter(role__in=ROLES_AVEC_CONGES, actif=True):
         synchroniser_soldes(employe)
         for solde in SoldeConge.objects.filter(utilisateur=employe, type_conge=type_conge, annee__gte=annee):
             droit = droit_annuel(type_conge, employe)
@@ -170,6 +170,6 @@ def propager_type_conge(type_conge):
 def synchroniser_tous():
     """Régularisation en masse (tâche planifiée). Retourne le nombre de soldes créés."""
     total = 0
-    for employe in Utilisateur.objects.filter(role=RoleUtilisateur.EMPLOYE, actif=True):
+    for employe in Utilisateur.objects.filter(role__in=ROLES_AVEC_CONGES, actif=True):
         total += len(synchroniser_soldes(employe))
     return total

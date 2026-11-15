@@ -3,8 +3,10 @@ import api, { messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function JoursFeriesPage() {
+  const { t } = useI18n()
   const [jours, setJours] = useState(null)
   const [date, setDate] = useState('')
   const [libelle, setLibelle] = useState('')
@@ -31,49 +33,49 @@ export default function JoursFeriesPage() {
   }
 
   async function supprimer(id) {
-    if (!window.confirm('Supprimer ce jour férié ?')) return
+    if (!window.confirm(t('Supprimer ce jour férié ?'))) return
     await api.delete(`/jours-feries/${id}/`)
     charger()
   }
 
   return (
     <div className="page">
-      <h1>Jours fériés &amp; fermetures</h1>
+      <h1>{t('Jours fériés & fermetures')}</h1>
 
-      <Carte titre="Ajouter un jour férié / une fermeture">
+      <Carte titre={t('Ajouter un jour férié / une fermeture')}>
         <form className="formulaire" onSubmit={handleSubmit}>
           <div className="formulaire__ligne">
             <label>
-              Date
+              {t('Date')}
               <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </label>
             <label>
-              Libellé
+              {t('Libellé')}
               <input type="text" required value={libelle} onChange={(e) => setLibelle(e.target.value)} />
             </label>
           </div>
           <label className="case-a-cocher">
             <input type="checkbox" checked={recurrent} onChange={(e) => setRecurrent(e.target.checked)} />
-            Récurrent chaque année
+            {t('Récurrent chaque année')}
           </label>
           <Alerte type="erreur">{erreur}</Alerte>
-          <button className="bouton bouton--primaire" type="submit">Ajouter</button>
+          <button className="bouton bouton--primaire" type="submit">{t('Ajouter')}</button>
         </form>
       </Carte>
 
-      <Carte titre="Jours déclarés">
+      <Carte titre={t('Jours déclarés')}>
         {jours === null ? (
           <Chargement />
         ) : (
           <table className="tableau">
-            <thead><tr><th>Date</th><th>Libellé</th><th>Récurrent</th><th></th></tr></thead>
+            <thead><tr><th>{t('Date')}</th><th>{t('Libellé')}</th><th>{t('Récurrent')}</th><th></th></tr></thead>
             <tbody>
               {jours.map((j) => (
                 <tr key={j.id}>
                   <td>{j.date}</td>
-                  <td>{j.libelle}</td>
-                  <td>{j.recurrent ? 'Oui' : 'Non'}</td>
-                  <td><button className="bouton bouton--danger" onClick={() => supprimer(j.id)}>Supprimer</button></td>
+                  <td>{t(j.libelle)}</td>
+                  <td>{j.recurrent ? t('Oui') : t('Non')}</td>
+                  <td><button className="bouton bouton--danger" onClick={() => supprimer(j.id)}>{t('Supprimer')}</button></td>
                 </tr>
               ))}
             </tbody>

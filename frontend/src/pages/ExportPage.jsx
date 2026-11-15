@@ -2,6 +2,7 @@ import { useState } from 'react'
 import api, { messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
+import { useI18n } from '../i18n/I18nContext'
 
 const ANNEE_COURANTE = new Date().getFullYear()
 const MOIS = [
@@ -10,6 +11,7 @@ const MOIS = [
 ]
 
 export default function ExportPage() {
+  const { t } = useI18n()
   const [annee, setAnnee] = useState(ANNEE_COURANTE)
   const [mois, setMois] = useState('') // '' = tous les mois
   const [enCours, setEnCours] = useState(false)
@@ -41,33 +43,33 @@ export default function ExportPage() {
 
   return (
     <div className="page">
-      <h1>Export des congés validés</h1>
-      <Carte titre="Export CSV (Comptabilité)">
+      <h1>{t('Export des congés validés')}</h1>
+      <Carte titre={t('Export CSV (Comptabilité)')}>
         <p className="texte-discret">
-          Le fichier ne contient que les demandes <strong>validées</strong> (décision finale de la Direction) :
-          employé, matricule, département, type de congé, période, jours ouvrés et date de validation.
-          Les demandes en attente, refusées ou annulées n’y figurent pas.
+          {t('Le fichier ne contient que les demandes')} <strong>{t('validées')}</strong>{' '}
+          {t('(décision finale de la Direction) : employé, matricule, département, type de congé, période, jours ouvrés et date de validation. Les demandes en attente, refusées ou annulées n’y figurent pas.')}
         </p>
         <p className="texte-discret">
-          Le tri se fait sur la <strong>date de début</strong> du congé. Laissez l’année vide pour toutes les années.
+          {t('Le tri se fait sur la')} <strong>{t('date de début')}</strong>{' '}
+          {t('du congé. Laissez l’année vide pour toutes les années.')}
         </p>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <label>
-            Année
+            {t('Année')}
             <input
               type="number"
               value={annee}
-              placeholder="Toutes"
+              placeholder={t('Toutes')}
               onChange={(e) => setAnnee(e.target.value)}
               style={{ maxWidth: 120 }}
             />
           </label>
           <label>
-            Mois
+            {t('Mois')}
             <select value={mois} onChange={(e) => setMois(e.target.value)}>
-              <option value="">Tous les mois</option>
+              <option value="">{t('Tous les mois')}</option>
               {MOIS.map((nom, i) => (
-                <option key={nom} value={i + 1}>{nom}</option>
+                <option key={nom} value={i + 1}>{t(nom)}</option>
               ))}
             </select>
           </label>
@@ -75,7 +77,7 @@ export default function ExportPage() {
         <Alerte type="erreur">{erreur}</Alerte>
         <div className="tableau__actions">
           <button className="bouton bouton--primaire" onClick={telecharger} disabled={enCours}>
-            {enCours ? 'Génération…' : 'Télécharger le CSV'}
+            {enCours ? t('Génération…') : t('Télécharger le CSV')}
           </button>
         </div>
       </Carte>

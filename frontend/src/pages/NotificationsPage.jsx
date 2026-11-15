@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import Carte from '../components/Carte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function NotificationsPage() {
+  const { t, locale } = useI18n()
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState(null)
 
@@ -40,27 +42,27 @@ export default function NotificationsPage() {
   return (
     <div className="page">
       <div className="page__entete">
-        <h1>Notifications</h1>
-        <button className="bouton bouton--discret" onClick={toutMarquerLu}>Tout marquer comme lu</button>
+        <h1>{t('Notifications')}</h1>
+        <button className="bouton bouton--discret" onClick={toutMarquerLu}>{t('Tout marquer comme lu')}</button>
       </div>
       <Carte>
         {notifications === null ? (
           <Chargement />
         ) : notifications.length === 0 ? (
-          <p className="texte-discret">Aucune notification.</p>
+          <p className="texte-discret">{t('Aucune notification.')}</p>
         ) : (
           <ul className="liste-notifications">
             {notifications.map((n) => (
               <li key={n.id} className={n.lu ? '' : 'liste-notifications__non-lue'}>
                 <button type="button" className="notification__contenu" onClick={() => ouvrir(n)}>
-                  <span className="notification__message">{n.message}</span>
+                  <span className="notification__message">{t(n.message)}</span>
                   <span className="texte-discret">
-                    {new Date(n.date_envoi).toLocaleString('fr-FR')}
-                    {n.demande && ' · Voir la demande →'}
+                    {new Date(n.date_envoi).toLocaleString(locale)}
+                    {n.demande && ` · ${t('Voir la demande →')}`}
                   </span>
                 </button>
                 {!n.lu && (
-                  <button className="bouton bouton--discret" onClick={() => marquerLu(n.id)}>Marquer comme lu</button>
+                  <button className="bouton bouton--discret" onClick={() => marquerLu(n.id)}>{t('Marquer comme lu')}</button>
                 )}
               </li>
             ))}

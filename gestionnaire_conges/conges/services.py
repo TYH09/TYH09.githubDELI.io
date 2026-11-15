@@ -66,13 +66,20 @@ def soumettre_demande(demande):
     demande.soumettre()  # calcule les jours ouvrés + vérifie les règles métier
     _journaliser(demande.utilisateur, "Soumission demande de congé", f"DemandeConge#{demande.pk}", avant, demande.statut)
 
-    manager = getattr(demande.utilisateur.departement, "responsable", None)
-    if manager:
-        _notifier(
-            manager,
-            f"Nouvelle demande de congé de {demande.utilisateur.get_full_name()} à valider.",
-            demande,
-        )
+    if demande.statut == StatutDemande.EN_ATTENTE_MANAGER:
+        manager = getattr(demande.utilisateur.departement, "responsable", None)
+        destinataires = [manager] if manager else []
+    elif demande.statut == StatutDemande.EN_ATTENTE_RH:
+        destinataires = list(validateurs_rh())
+    else:  # EN_ATTENTE_DIRECTION : chef de département ou RH, validés à 1 niveau
+        destinataires = list(_directeurs_pour(demande))
+    for destinataire in destinataires:
+        if destinataire.pk != demande.utilisateur_id:
+            _notifier(
+                destinataire,
+                f"Nouvelle demande de congé de {demande.utilisateur.get_full_name()} à valider.",
+                demande,
+            )
     _notifier(demande.utilisateur, "Votre demande de congé a bien été soumise.", demande)
     return demande
 
@@ -81,6 +88,7 @@ def _verifier_niveau(demande, niveau_attendu):
     attendu = {
         NiveauValidation.MANAGER: StatutDemande.EN_ATTENTE_MANAGER,
         NiveauValidation.DIRECTION: StatutDemande.EN_ATTENTE_DIRECTION,
+        NiveauValidation.RH: StatutDemande.EN_ATTENTE_RH,
     }[niveau_attendu]
     if demande.statut != attendu:
         raise WorkflowError(
@@ -93,6 +101,8 @@ def valider_niveau(demande, niveau, decision, auteur, commentaire=""):
     """Fragment 2 (Manager) / Fragment 3 (Direction Générale) — même patron
     d'interaction pour les deux niveaux du circuit."""
     _verifier_niveau(demande, niveau)
+    if auteur.pk == demande.utilisateur_id:
+        raise WorkflowError("Vous ne pouvez pas valider votre propre demande de congé.")
     avant = demande.statut
 
     Validation.objects.create(
@@ -129,7 +139,7 @@ def valider_niveau(demande, niveau, decision, auteur, commentaire=""):
             )
         return demande
 
-    # niveau == DIRECTION, décision == APPROUVE -> validation finale
+    # niveau == DIRECTION ou RH, décision == APPROUVE -> validation finale
     demande.statut = StatutDemande.VALIDEE
     demande.save(update_fields=["statut", "date_maj"])
     if demande.type_conge.decompte_solde:
@@ -143,15 +153,33 @@ def valider_niveau(demande, niveau, decision, auteur, commentaire=""):
     return demande
 
 
-def _directeurs_pour(demande):
-    """Directeurs appelés à statuer sur la demande : ceux qui supervisent le
-    département de l'employé ; à défaut (département sans directeur affecté,
-    ou employé sans département), toute la Direction Générale active — la
-    demande ne reste ainsi jamais sans décideur."""
+def validateurs_rh():
+    """Comptes RH actifs : valident la demande d'un directeur."""
     from accounts.models import RoleUtilisateur, Utilisateur
 
+    return Utilisateur.objects.filter(role=RoleUtilisateur.RH, actif=True)
+
+
+def _directeurs_pour(demande):
+    """Directeurs appelés à statuer au niveau « Direction » :
+    - demande du RH -> le DAF (à défaut de DAF actif, toute la Direction) ;
+    - demande d'un chef de département -> le directeur affecté au département
+      qu'il dirige (à défaut, à son département de rattachement) ;
+    - demande d'un employé -> le directeur qui supervise son département.
+    Sans directeur affecté (ou employé sans département), toute la Direction
+    Générale active : la demande ne reste jamais sans décideur."""
+    from accounts.models import FonctionDirection, RoleUtilisateur, Utilisateur
+
     directeurs = Utilisateur.objects.filter(role=RoleUtilisateur.DIRECTEUR, actif=True)
-    departement = demande.utilisateur.departement
+    demandeur = demande.utilisateur
+    if demandeur.role == RoleUtilisateur.RH:
+        daf = directeurs.filter(fonction_direction=FonctionDirection.DAF)
+        return daf if daf.exists() else directeurs
+    departement = demandeur.departement
+    if demandeur.role == RoleUtilisateur.MANAGER:
+        dirige = getattr(demandeur, "departement_dirige", None)
+        if dirige is not None and dirige.directeur_id:
+            return directeurs.filter(pk=dirige.directeur_id)
     if departement and departement.directeur_id:
         return directeurs.filter(pk=departement.directeur_id)
     return directeurs

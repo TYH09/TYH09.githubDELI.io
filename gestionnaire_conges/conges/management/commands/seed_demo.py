@@ -33,13 +33,14 @@ class Command(BaseCommand):
         production, _ = Departement.objects.get_or_create(nom="Production")
         rh_dep, _ = Departement.objects.get_or_create(nom="Ressources Humaines")
 
-        def creer_utilisateur(username, prenom, nom, role, sexe, telephone="", **kwargs):
+        def creer_utilisateur(username, prenom, nom, role, sexe, matricule, telephone="", **kwargs):
+            complement = {k: kwargs[k] for k in ("date_embauche", "a_enfant") if k in kwargs}
             user, created = Utilisateur.objects.get_or_create(
                 username=username,
                 defaults=dict(
                     first_name=prenom, last_name=nom, role=role, sexe=sexe, telephone=telephone,
                     email=f"{username}@delifood-agro.local",
-                    matricule=kwargs.pop("matricule", username.upper()),
+                    matricule=matricule,
                     **kwargs,
                 ),
             )
@@ -54,44 +55,52 @@ class Command(BaseCommand):
                 if not user.telephone and telephone:
                     user.telephone = telephone
                     champs.append("telephone")
+                for champ in ("date_embauche", "a_enfant"):
+                    if getattr(user, champ) in (None, "") and champ in complement:
+                        setattr(user, champ, complement[champ])
+                        champs.append(champ)
                 if champs:
                     user.save(update_fields=champs)
             return user
 
-        manager = creer_utilisateur("j.manager", "Jeanne", "Mballa", RoleUtilisateur.MANAGER, "F", telephone="+237 6 70 11 22 33", departement=production)
+        manager = creer_utilisateur("j.manager", "Jeanne", "Mballa", RoleUtilisateur.MANAGER, "F", "MGR2026001", telephone="+237 6 70 11 22 33", departement=production, date_embauche=date(2019, 6, 1), a_enfant=False)
         production.responsable = manager
         production.save()
 
         directeur = creer_utilisateur(
-            "p.directeur", "Paul", "Ngassa", RoleUtilisateur.DIRECTEUR, "M", telephone="+237 6 99 44 55 66",
-            fonction_direction=FonctionDirection.DGA,
+            "p.directeur", "Paul", "Ngassa", RoleUtilisateur.DIRECTEUR, "M", "DIR2026001", telephone="+237 6 99 44 55 66",
+            fonction_direction=FonctionDirection.DGA, date_embauche=date(2015, 1, 5),
+        )
+        daf = creer_utilisateur(
+            "d.daf", "Denise", "Essomba", RoleUtilisateur.DIRECTEUR, "F", "DAF2026001", telephone="+237 6 66 10 20 30",
+            fonction_direction=FonctionDirection.DAF, date_embauche=date(2016, 9, 1), a_enfant=False,
         )
         # Le directeur de démonstration supervise plusieurs départements
         for dep in (production, rh_dep):
             if dep.directeur_id is None:
                 dep.directeur = directeur
                 dep.save(update_fields=["directeur"])
-        rh = creer_utilisateur("r.rh", "Rose", "Abena", RoleUtilisateur.RH, "F", telephone="+237 6 77 88 99 00", departement=rh_dep)
-        admin = creer_utilisateur("a.admin", "Alain", "Fotso", RoleUtilisateur.ADMINISTRATEUR, "M", telephone="+237 6 55 00 11 22")
+        rh = creer_utilisateur("r.rh", "Rose", "Abena", RoleUtilisateur.RH, "F", "RH20260001", telephone="+237 6 77 88 99 00", departement=rh_dep, date_embauche=date(2020, 2, 3), a_enfant=False)
+        admin = creer_utilisateur("a.admin", "Alain", "Fotso", RoleUtilisateur.ADMINISTRATEUR, "M", "ADM2026001", telephone="+237 6 55 00 11 22")
         if not admin.is_superuser:
             admin.is_staff = True
             admin.is_superuser = True
             admin.save()
 
         employe = creer_utilisateur(
-            "e.employe", "Eric", "Talla", RoleUtilisateur.EMPLOYE, "M", telephone="+237 6 91 23 45 67",
+            "e.employe", "Eric", "Talla", RoleUtilisateur.EMPLOYE, "M", "EMP2026001", telephone="+237 6 91 23 45 67",
             departement=production, date_embauche=date(2023, 3, 1),
         )
 
         # Recrue de moins d'un an : pas encore de droit au congé annuel (aucun solde).
         creer_utilisateur(
-            "c.recrue", "Claire", "Mvondo", RoleUtilisateur.EMPLOYE, "F", telephone="+237 6 92 34 56 78",
+            "c.recrue", "Claire", "Mvondo", RoleUtilisateur.EMPLOYE, "F", "EMP2026002", telephone="+237 6 92 34 56 78",
             departement=production, date_embauche=date.today() - timedelta(days=120), a_enfant=False,
         )
 
         # Soldes annuels : 18 jours dès un an d'ancienneté (Eric : oui) ; Claire n'a pas de congé annuel
         # (moins d'un an) mais dispose du solde de congé de maternité (90 j).
-        for u in (employe, Utilisateur.objects.get(username="c.recrue")):
+        for u in (employe, Utilisateur.objects.get(username="c.recrue"), manager, directeur, daf, rh):
             mettre_a_jour_droits(u)
 
         self.stdout.write(self.style.SUCCESS(
@@ -99,7 +108,8 @@ class Command(BaseCommand):
             "  - e.employe   (Employé, plus d'un an d'ancienneté : solde de 18 j)\n"
             "  - c.recrue    (Employée, moins d'un an : pas de congé annuel, solde de maternité de 90 j)\n"
             "  - j.manager   (Manager / chef de département Production)\n"
-            "  - p.directeur (Direction Générale — DGA)\n"
-            "  - r.rh        (Responsable RH)\n"
+            "  - p.directeur (Direction Générale — DGA ; valide le chef de département)\n"
+            "  - d.daf       (Direction Générale — DAF ; valide le RH)\n"
+            "  - r.rh        (Responsable RH ; valide les directeurs)\n"
             "  - a.admin     (Administrateur, superuser Django admin)"
         ))

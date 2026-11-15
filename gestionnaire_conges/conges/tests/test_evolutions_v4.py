@@ -41,7 +41,7 @@ def ouvre(n=10):
 def payload(**kw):
     base = {
         "username": "nouveau", "password": "Zx#9kLmN2026", "first_name": "No", "last_name": "Uveau",
-        "email": "n@v.local", "matricule": "N1", "role": "EMPLOYE", "sexe": "F", "a_enfant": False,
+        "email": "n@v.local", "matricule": "NOUVEAU001", "role": "EMPLOYE", "sexe": "F", "a_enfant": False,
         "date_embauche": str(il_y_a_annees(3)),
     }
     base.update(kw)
@@ -93,8 +93,17 @@ class DateEntreeEtSoldeALaCreationTests(BaseV2):
         self.assertEqual(resp.status_code, 400)
         self.assertIn("date_embauche", resp.data)
 
-    def test_date_non_obligatoire_pour_les_autres_roles(self):
-        sans = payload(role="RH", username="rh2", matricule="RH2")
+    def test_date_obligatoire_pour_les_roles_qui_posent_des_conges(self):
+        # RH, chef de département et directeur posent des congés comme un employé.
+        for role in ("RH", "MANAGER", "DIRECTEUR"):
+            sans = payload(role=role, username=f"x{role.lower()}", matricule=f"{role}000001", fonction_direction="DG")
+            del sans["date_embauche"]
+            r = self.client.post("/api/utilisateurs/", sans, format="json")
+            self.assertEqual(r.status_code, 400, role)
+            self.assertIn("date_embauche", r.data)
+
+    def test_date_non_obligatoire_pour_l_administrateur(self):
+        sans = payload(role="ADMINISTRATEUR", username="adm2", matricule="ADMIN00002")
         del sans["date_embauche"]
         self.assertEqual(self.client.post("/api/utilisateurs/", sans, format="json").status_code, 201)
 

@@ -31,4 +31,26 @@ export function dateDeRetour(derniereDateAbsence, feries = []) {
   return jour
 }
 
+/**
+ * Dernier jour d'un congé de paternité commençant à `debutIso` : le 3e jour ouvré
+ * (week-ends et jours fériés exclus), le jour de départ compris s'il est ouvré.
+ * Même règle que le serveur (`date_fin_paternite`).
+ */
+export const JOURS_PATERNITE = 3
+export function dateFinPaternite(debutIso, feries = []) {
+  const exacts = new Set(feries.map((f) => f.date))
+  const recurrents = new Set(feries.filter((f) => f.recurrent).map((f) => f.date.slice(5)))
+  let jour = debutIso
+  let compte = 0
+  for (let i = 0; i < 60; i += 1) {
+    const js = vers(jour).getUTCDay()
+    if (js !== 0 && js !== 6 && !exacts.has(jour) && !recurrents.has(jour.slice(5))) {
+      compte += 1
+      if (compte === JOURS_PATERNITE) return jour
+    }
+    jour = ajouterJours(jour, 1)
+  }
+  return jour
+}
+
 export const versFr = (dateIso) => (dateIso ? dateIso.split('-').reverse().join('/') : '')

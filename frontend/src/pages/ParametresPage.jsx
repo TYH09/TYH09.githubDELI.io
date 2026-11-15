@@ -4,8 +4,10 @@ import api, { messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function ParametresPage() {
+  const { t } = useI18n()
   const [params, setParams] = useState(null)
   const [erreur, setErreur] = useState('')
   const [succes, setSucces] = useState('')
@@ -21,7 +23,7 @@ export default function ParametresPage() {
     try {
       const { data } = await api.put('/parametres-systeme/', params)
       setParams(data)
-      setSucces('Paramètres enregistrés.')
+      setSucces(t('Paramètres enregistrés.'))
     } catch (err) {
       setErreur(messageErreur(err))
     }
@@ -31,22 +33,22 @@ export default function ParametresPage() {
 
   return (
     <div className="page">
-      <h1>Paramètres système</h1>
-      <Carte titre="Seuils configurables">
+      <h1>{t('Paramètres système')}</h1>
+      <Carte titre={t('Seuils configurables')}>
         <p className="texte-discret">
-          Valeurs par défaut, appliquées aux types de congés qui n’ont pas leurs propres seuils (voir{' '}
-          <Link to="/admin/types-conge">Délais et seuils par type</Link>).
+          {t('Valeurs par défaut, appliquées aux types de congés qui n’ont pas leurs propres seuils (voir')}{' '}
+          <Link to="/admin/types-conge">{t('Délais et seuils par type')}</Link>).
         </p>
         <form className="formulaire" onSubmit={enregistrer}>
           <label>
-            Délai minimum de soumission (jours avant la date de début)
+            {t('Délai minimum de soumission (jours avant la date de début)')}
             <input
               type="number" min="0" value={params.delai_minimum_jours}
               onChange={(e) => setParams({ ...params, delai_minimum_jours: Number(e.target.value) })}
             />
           </label>
           <label>
-            Seuil d'alerte solde faible (jours restants)
+            {t("Seuil d'alerte solde faible (jours restants)")}
             <input
               type="number" min="0" value={params.seuil_alerte_solde_jours}
               onChange={(e) => setParams({ ...params, seuil_alerte_solde_jours: Number(e.target.value) })}
@@ -54,7 +56,7 @@ export default function ParametresPage() {
           </label>
           <Alerte type="erreur">{erreur}</Alerte>
           <Alerte type="succes">{succes}</Alerte>
-          <button className="bouton bouton--primaire" type="submit">Enregistrer</button>
+          <button className="bouton bouton--primaire" type="submit">{t('Enregistrer')}</button>
         </form>
       </Carte>
     </div>

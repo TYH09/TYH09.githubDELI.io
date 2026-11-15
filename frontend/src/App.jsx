@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
+import { useI18n } from './i18n/I18nContext'
 import RequireAuth from './auth/RequireAuth'
 import Layout from './components/Layout'
 import Chargement from './components/Chargement'
@@ -35,7 +36,8 @@ import NotFoundPage from './pages/NotFoundPage'
  */
 function RoutesApplication() {
   const { chargementInitial } = useAuth()
-  if (chargementInitial) return <Chargement libelle="Démarrage…" />
+  const { t } = useI18n()
+  if (chargementInitial) return <Chargement libelle={t('Démarrage…')} />
 
   return (
     <Routes>
@@ -47,7 +49,7 @@ function RoutesApplication() {
         <Route path="/mon-compte" element={<MonComptePage />} />
         <Route path="/demandes/:id" element={<DemandeDetailPage />} />
 
-        <Route path="/mes-demandes" element={<RequireAuth roles={['EMPLOYE']}><MesDemandesPage /></RequireAuth>} />
+        <Route path="/mes-demandes" element={<RequireAuth roles={['EMPLOYE', 'MANAGER', 'RH', 'DIRECTEUR']}><MesDemandesPage /></RequireAuth>} />
 
         <Route
           path="/validations/manager"
@@ -56,7 +58,7 @@ function RoutesApplication() {
               <ValidationsEnAttentePage
                 niveau="EN_ATTENTE_MANAGER"
                 actionPath="valider-manager"
-                titre="Demandes à valider — Chef de département"
+                titre={t('Demandes à valider — Chef de département')}
               />
             </RequireAuth>
           }
@@ -68,7 +70,19 @@ function RoutesApplication() {
               <ValidationsEnAttentePage
                 niveau="EN_ATTENTE_DIRECTION"
                 actionPath="valider-direction"
-                titre="Demandes à valider — Direction Générale (décision finale)"
+                titre={t('Demandes à valider — Direction Générale (décision finale)')}
+              />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/validations/rh"
+          element={
+            <RequireAuth roles={['RH']}>
+              <ValidationsEnAttentePage
+                niveau="EN_ATTENTE_RH"
+                actionPath="valider-rh"
+                titre={t('Demandes à valider — Directeurs (décision finale)')}
               />
             </RequireAuth>
           }

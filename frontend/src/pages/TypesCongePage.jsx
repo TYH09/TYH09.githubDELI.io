@@ -3,6 +3,7 @@ import api, { messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 const VIDE = {
   libelle: '', plafond_jours: '', justificatif_obligatoire: false,
@@ -10,6 +11,7 @@ const VIDE = {
 }
 
 export default function TypesCongePage() {
+  const { t } = useI18n()
   const [types, setTypes] = useState(null)
   const [form, setForm] = useState(VIDE)
   const [erreur, setErreur] = useState('')
@@ -41,7 +43,7 @@ export default function TypesCongePage() {
   }
 
   async function supprimer(id) {
-    if (!window.confirm('Supprimer ce type de congé ?')) return
+    if (!window.confirm(t('Supprimer ce type de congé ?'))) return
     try {
       await api.delete(`/types-conge/${id}/`)
       charger()
@@ -52,72 +54,72 @@ export default function TypesCongePage() {
 
   return (
     <div className="page">
-      <h1>Types de congés</h1>
+      <h1>{t('Types de congés')}</h1>
 
-      <Carte titre="Ajouter un type de congé">
+      <Carte titre={t('Ajouter un type de congé')}>
         <form className="formulaire" onSubmit={handleSubmit}>
           <div className="formulaire__ligne">
             <label>
-              Libellé
+              {t('Libellé')}
               <input type="text" required value={form.libelle} onChange={(e) => setForm({ ...form, libelle: e.target.value })} />
             </label>
             <label>
-              Plafond annuel (jours acquis par employé et par an ; obligatoire si décompté du solde)
+              {t('Plafond annuel (jours acquis par employé et par an ; obligatoire si décompté du solde)')}
               <input type="number" min="0" value={form.plafond_jours} onChange={(e) => setForm({ ...form, plafond_jours: e.target.value })} />
             </label>
           </div>
           <label>
-            Règle d'acquisition
+            {t("Règle d'acquisition")}
             <input
               type="text" value={form.regle_acquisition}
-              placeholder="ex. 1,5 jour / mois travaillé (défaut : annuelle)"
+              placeholder={t('ex. 1,5 jour / mois travaillé (défaut : annuelle)')}
               onChange={(e) => setForm({ ...form, regle_acquisition: e.target.value })}
             />
           </label>
           <label>
-            Réservé à un sexe
+            {t('Réservé à un sexe')}
             <select value={form.reserve_a_sexe} onChange={(e) => setForm({ ...form, reserve_a_sexe: e.target.value })}>
-              <option value="">Ouvert à tous</option>
-              <option value="F">Femmes uniquement (ex. maternité)</option>
-              <option value="M">Hommes uniquement (ex. paternité)</option>
+              <option value="">{t('Ouvert à tous')}</option>
+              <option value="F">{t('Femmes uniquement (ex. maternité)')}</option>
+              <option value="M">{t('Hommes uniquement (ex. paternité)')}</option>
             </select>
           </label>
           <div className="formulaire__ligne">
             <label className="case-a-cocher">
               <input type="checkbox" checked={form.justificatif_obligatoire} onChange={(e) => setForm({ ...form, justificatif_obligatoire: e.target.checked })} />
-              Justificatif obligatoire
+              {t('Justificatif obligatoire')}
             </label>
             <label className="case-a-cocher">
               <input type="checkbox" checked={form.decompte_solde} onChange={(e) => setForm({ ...form, decompte_solde: e.target.checked })} />
-              Décompté du solde de congés
+              {t('Décompté du solde de congés')}
             </label>
           </div>
           <Alerte type="erreur">{erreur}</Alerte>
-          <button className="bouton bouton--primaire" type="submit">Ajouter</button>
+          <button className="bouton bouton--primaire" type="submit">{t('Ajouter')}</button>
         </form>
       </Carte>
 
-      <Carte titre="Types existants">
-        <p className="texte-discret">Le délai minimum de soumission et le seuil d’alerte de chaque type sont réglés par l’Administrateur.</p>
+      <Carte titre={t('Types existants')}>
+        <p className="texte-discret">{t('Le délai minimum de soumission et le seuil d’alerte de chaque type sont réglés par l’Administrateur.')}</p>
         {types === null ? (
           <Chargement />
         ) : (
           <table className="tableau">
             <thead>
-              <tr><th>Libellé</th><th>Plafond</th><th>Justificatif</th><th>Décompte solde</th><th>Réservé à</th><th>Délai minimum</th><th>Seuil d’alerte</th><th>Règle</th><th></th></tr>
+              <tr><th>{t('Libellé')}</th><th>{t('Plafond')}</th><th>{t('Justificatif')}</th><th>{t('Décompte solde')}</th><th>{t('Réservé à')}</th><th>{t('Délai minimum')}</th><th>{t('Seuil d’alerte')}</th><th>{t('Règle')}</th><th></th></tr>
             </thead>
             <tbody>
-              {types.map((t) => (
-                <tr key={t.id}>
-                  <td>{t.libelle}</td>
-                  <td>{t.plafond_jours ?? '—'}</td>
-                  <td>{t.justificatif_obligatoire ? 'Oui' : 'Non'}</td>
-                  <td>{t.decompte_solde ? 'Oui' : 'Non'}</td>
-                  <td>{t.reserve_a_sexe === 'F' ? 'Femmes' : t.reserve_a_sexe === 'M' ? 'Hommes' : 'Tous'}</td>
-                  <td title={t.delai_minimum_jours === null ? 'Valeur par défaut des paramètres système' : 'Fixé par l’Administrateur'}>{t.delai_minimum_effectif} j</td>
-                  <td title={t.seuil_alerte_jours === null ? 'Valeur par défaut des paramètres système' : 'Fixé par l’Administrateur'}>{t.seuil_alerte_effectif} j</td>
-                  <td className="texte-discret">{t.regle_acquisition}</td>
-                  <td><button className="bouton bouton--danger" onClick={() => supprimer(t.id)}>Supprimer</button></td>
+              {types.map((type) => (
+                <tr key={type.id}>
+                  <td>{t(type.libelle)}</td>
+                  <td>{type.plafond_jours ?? '—'}</td>
+                  <td>{type.justificatif_obligatoire ? t('Oui') : t('Non')}</td>
+                  <td>{type.decompte_solde ? t('Oui') : t('Non')}</td>
+                  <td>{type.reserve_a_sexe === 'F' ? t('Femmes') : type.reserve_a_sexe === 'M' ? t('Hommes') : t('Tous')}</td>
+                  <td title={type.delai_minimum_jours === null ? t('Valeur par défaut des paramètres système') : t('Fixé par l’Administrateur')}>{t('{n} j', { n: type.delai_minimum_effectif })}</td>
+                  <td title={type.seuil_alerte_jours === null ? t('Valeur par défaut des paramètres système') : t('Fixé par l’Administrateur')}>{t('{n} j', { n: type.seuil_alerte_effectif })}</td>
+                  <td className="texte-discret">{type.regle_acquisition}</td>
+                  <td><button className="bouton bouton--danger" onClick={() => supprimer(type.id)}>{t('Supprimer')}</button></td>
                 </tr>
               ))}
             </tbody>

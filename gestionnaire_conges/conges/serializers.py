@@ -6,8 +6,8 @@ from rest_framework import serializers
 from accounts.serializers import UtilisateurSerializer
 
 from .models import (
-    JOURS_PAR_MOIS_MATERNITE, DemandeConge, JournalAudit, JourFerie, Notification,
-    ParametresSysteme, SoldeConge, StatutDemande, TypeConge, Validation, mois_maternite_disponibles,
+    JOURS_PAR_MOIS_MATERNITE, DemandeConge, date_fin_paternite, JournalAudit, JourFerie, Notification,
+    ParametresSysteme, SoldeConge, STATUTS_EN_ATTENTE, StatutDemande, TypeConge, Validation, mois_maternite_disponibles,
 )
 
 
@@ -27,11 +27,11 @@ class TypeCongeSerializer(serializers.ModelSerializer):
         fields = [
             "id", "libelle", "plafond_jours", "justificatif_obligatoire",
             "regle_acquisition", "decompte_solde", "reserve_a_sexe",
-            "est_maternite", "est_conge_annuel", "delai_minimum_jours", "seuil_alerte_jours",
+            "est_maternite", "est_conge_annuel", "est_paternite", "delai_minimum_jours", "seuil_alerte_jours",
             "delai_minimum_effectif", "seuil_alerte_effectif",
         ]
         # réglages de structure : migration / admin Django
-        read_only_fields = ["est_maternite", "est_conge_annuel"]
+        read_only_fields = ["est_maternite", "est_conge_annuel", "est_paternite"]
 
     def get_delai_minimum_effectif(self, obj):
         return obj.delai_minimum_effectif()
@@ -93,7 +93,7 @@ class SoldeCongeSerializer(serializers.ModelSerializer):
         return sum(
             d.nb_jours_decomptes for d in DemandeConge.objects.filter(
                 utilisateur_id=obj.utilisateur_id, type_conge_id=obj.type_conge_id, date_debut__year=obj.annee,
-                statut__in=[StatutDemande.EN_ATTENTE_MANAGER, StatutDemande.EN_ATTENTE_DIRECTION],
+                statut__in=STATUTS_EN_ATTENTE,
             )
         )
 
@@ -184,6 +184,13 @@ class DemandeCongeCreateSerializer(serializers.ModelSerializer):
                     {"duree_maternite_mois": "Choisissez la durée du congé de maternité : 1, 2 ou 3 mois."}
                 )
             attrs["date_fin"] = attrs["date_debut"] + timedelta(days=mois * JOURS_PAR_MOIS_MATERNITE - 1)
+        elif type_conge.est_paternite:
+            # 3 jours ouvrés à partir de la date de départ : la date de fin est calculée.
+            attrs["date_fin"] = date_fin_paternite(attrs["date_debut"])
+            if attrs.get("duree_maternite_mois"):
+                raise serializers.ValidationError(
+                    {"duree_maternite_mois": "La durée en mois ne concerne que le congé de maternité."}
+                )
         else:
             if not attrs.get("date_fin"):
                 raise serializers.ValidationError({"date_fin": "La date de fin est obligatoire."})

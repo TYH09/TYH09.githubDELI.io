@@ -5,6 +5,9 @@ import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
 import { useAuth } from '../auth/AuthContext'
 import RoleBadge from '../components/RoleBadge'
+import { useI18n } from '../i18n/I18nContext'
+import ChampMotDePasse from '../components/ChampMotDePasse'
+import { ROLES_AVEC_CONGES } from '../utils/roles'
 
 const ROLES = [
   ['EMPLOYE', 'Employé'],
@@ -39,10 +42,10 @@ function anciennete(dateIso) {
   return Math.max(annees, 0)
 }
 
-function libelleAnciennete(annees) {
+function libelleAnciennete(annees, t) {
   if (annees === null) return null
-  if (annees < 1) return 'moins d’un an'
-  return `${annees} an${annees > 1 ? 's' : ''}`
+  if (annees < 1) return t('moins d’un an')
+  return annees > 1 ? t('{n} ans', { n: annees }) : t('{n} an', { n: annees })
 }
 
 /** Comparateurs du tri de l'annuaire (le nom sert toujours de critère secondaire). */
@@ -60,11 +63,12 @@ const COMPARATEURS = {
 
 /** En-tête de colonne cliquable : trie l'annuaire sur ce critère (un 2e clic inverse l'ordre). */
 function EnteteTriable({ cle, tri, onTrier, children }) {
+  const { t } = useI18n()
   const actif = tri.cle === cle
   return (
     <th aria-sort={actif ? (tri.sens === 1 ? 'ascending' : 'descending') : 'none'}>
-      <button type="button" className="tri" onClick={() => onTrier(cle)} title={`Trier par ${children.toLowerCase()}`}>
-        {children}
+      <button type="button" className="tri" onClick={() => onTrier(cle)} title={t('Trier par {critere}', { critere: t(children).toLowerCase() })}>
+        {t(children)}
         <span className="tri__fleche">{actif ? (tri.sens === 1 ? '▲' : '▼') : '↕'}</span>
       </button>
     </th>
@@ -95,6 +99,7 @@ function versFormulaire(u) {
  * e-mail, matricule, sexe, rôle, département et mot de passe.
  */
 function FormulaireUtilisateur({ initial, departements, modification, onSoumis, onAnnuler }) {
+  const { t } = useI18n()
   const [form, setForm] = useState(initial)
   const [erreur, setErreur] = useState('')
   const [enCours, setEnCours] = useState(false)
@@ -114,9 +119,15 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
   async function handleSubmit(e) {
     e.preventDefault()
     setErreur('')
+    const nbChiffresTel = form.telephone.replace(/ /g, '').length // le « + » compte pour un
+    const telModifie = !modification || form.telephone.trim() !== (initial.telephone || '').trim()
+    if (form.telephone.trim() && telModifie && (nbChiffresTel < 9 || nbChiffresTel > 13)) {
+      setErreur('Le numéro de téléphone doit comporter entre 9 et 13 chiffres (le « + » compte pour un).')
+      return
+    }
     setEnCours(true)
     const estDirecteur = form.role === 'DIRECTEUR'
-    const employee = form.role === 'EMPLOYE' && form.sexe === 'F'
+    const employee = ROLES_AVEC_CONGES.includes(form.role) && form.sexe === 'F'
     const charge = {
       username: form.username,
       first_name: form.first_name,
@@ -147,57 +158,70 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
   return (
     <form className="formulaire" onSubmit={handleSubmit}>
       <div className="formulaire__ligne">
-        <label>Identifiant<input required value={form.username} onChange={maj('username')} /></label>
+        <label>{t('Identifiant')}<input required value={form.username} onChange={maj('username')} /></label>
         <label>
-          {modification ? 'Nouveau mot de passe (laisser vide pour ne pas le changer)' : 'Mot de passe'}
-          <input
-            type="password" required={!modification} autoComplete="new-password"
+          {modification ? t('Nouveau mot de passe (laisser vide pour ne pas le changer)') : t('Mot de passe')}
+          <ChampMotDePasse
+            required={!modification} autoComplete="new-password"
             value={form.password} onChange={maj('password')}
           />
         </label>
       </div>
       <div className="formulaire__ligne">
-        <label>Prénom<input required value={form.first_name} onChange={maj('first_name')} /></label>
-        <label>Nom<input required value={form.last_name} onChange={maj('last_name')} /></label>
+        <label>{t('Prénom')}<input required value={form.first_name} onChange={maj('first_name')} /></label>
+        <label>{t('Nom')}<input required value={form.last_name} onChange={maj('last_name')} /></label>
       </div>
       <div className="formulaire__ligne">
-        <label>E-mail<input type="email" value={form.email} onChange={maj('email')} /></label>
+        <label>{t('E-mail')}<input type="email" value={form.email} onChange={maj('email')} /></label>
         <label>
-          Téléphone (facultatif)
+          {t('Téléphone (facultatif)')}
           <input
-            type="tel" value={form.telephone} onChange={maj('telephone')}
-            placeholder="+237 6 70 12 34 56" maxLength={20}
+            type="tel" inputMode="tel" value={form.telephone}
+            onChange={(e) => setForm((f) => ({ ...f, telephone: e.target.value.replace(/[^0-9+ ]/g, '').replace(/(?!^)\+/g, '') }))}
+            placeholder="+237 674 847 765" maxLength={17}
+            title={t('Chiffres uniquement : 9 à 13 (le + compte pour un). Ex. : +237 674 847 765')}
           />
+          <span className="texte-discret formulaire__aide">{t('Chiffres uniquement : 9 à 13 (le + compte pour un). Ex. : +237 674 847 765')}</span>
         </label>
       </div>
       <div className="formulaire__ligne">
-        <label>Matricule<input required value={form.matricule} onChange={maj('matricule')} /></label>
         <label>
-          Sexe
+          {t('Matricule')}
+          <input
+            required value={form.matricule}
+            {...(modification && form.matricule === initial.matricule ? {} : { minLength: 8, maxLength: 16, pattern: '(?=.*[0-9])[A-Za-z0-9]{8,16}' })}
+            autoCapitalize="characters" style={{ textTransform: 'uppercase' }}
+            title={t('8 à 16 caractères : lettres et chiffres, au moins un chiffre (mis en majuscules automatiquement)')}
+            onChange={(e) => setForm((f) => ({ ...f, matricule: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') }))}
+          />
+          <span className="texte-discret formulaire__aide">{t('8 à 16 caractères : lettres et chiffres, au moins un chiffre (mis en majuscules automatiquement)')}</span>
+        </label>
+        <label>
+          {t('Sexe')}
           <select required value={form.sexe} onChange={maj('sexe')}>
-            <option value="" disabled>— Choisir —</option>
-            {SEXES.map(([v, l]) => <option key={v} value={v}>{l} ({v})</option>)}
+            <option value="" disabled>{t('— Choisir —')}</option>
+            {SEXES.map(([v, l]) => <option key={v} value={v}>{t(l)} ({v})</option>)}
           </select>
         </label>
       </div>
       <div className="formulaire__ligne">
         <label>
-          Rôle
+          {t('Rôle')}
           <select value={form.role} onChange={maj('role')}>
-            {ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {ROLES.map(([v, l]) => <option key={v} value={v}>{t(l)}</option>)}
           </select>
         </label>
         {form.role === 'DIRECTEUR' && (
           <label>
-            Fonction de direction
+            {t('Fonction de direction')}
             <select required value={form.fonction_direction} onChange={maj('fonction_direction')}>
-              <option value="" disabled>— Choisir —</option>
+              <option value="" disabled>{t('— Choisir —')}</option>
               {FONCTIONS_DIRECTION.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
           </label>
         )}
         <label>
-          Département
+          {t('Département')}
           <select value={form.departement} onChange={maj('departement')}>
             <option value="">—</option>
             {departements.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
@@ -205,11 +229,11 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
         </label>
       </div>
 
-      {form.role === 'EMPLOYE' && (
+      {ROLES_AVEC_CONGES.includes(form.role) && (
         <>
           <div className="formulaire__ligne">
             <label>
-              Date d’entrée à l’usine
+              {t('Date d’entrée à l’usine')}
               <input
                 type="date" required max={AUJOURDHUI}
                 value={form.date_embauche} onChange={maj('date_embauche')}
@@ -218,24 +242,24 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
             <p className="texte-discret formulaire__aide">
               {form.date_embauche
                 ? (anciennete(form.date_embauche) >= 1
-                  ? `Ancienneté : ${libelleAnciennete(anciennete(form.date_embauche))} — droit à ${droitAnnuel(form)} jours de congé annuel par an.`
-                  : 'Moins d’un an d’ancienneté : pas de solde de congé annuel pour le moment (il sera attribué au premier anniversaire).')
-                : 'L’ancienneté détermine le droit au congé annuel : 18 jours par an à partir d’un an d’ancienneté (21 jours pour une femme dont le dernier enfant a 6 ans ou moins).'}
+                  ? t('Ancienneté : {anciennete} — droit à {jours} jours de congé annuel par an.', { anciennete: libelleAnciennete(anciennete(form.date_embauche), t), jours: droitAnnuel(form) })
+                  : t('Moins d’un an d’ancienneté : pas de solde de congé annuel pour le moment (il sera attribué au premier anniversaire).'))
+                : t('L’ancienneté détermine le droit au congé annuel : 18 jours par an à partir d’un an d’ancienneté (21 jours pour une femme dont le dernier enfant a 6 ans ou moins).')}
             </p>
           </div>
 
           {form.sexe === 'F' && (
             <fieldset className="formulaire__groupe">
-              <legend>Situation familiale de l’employée</legend>
+              <legend>{t('Situation familiale de l’employée')}</legend>
               <div className="formulaire__ligne">
-                <div className="choix" role="radiogroup" aria-label="A un enfant">
-                  <span className="choix__titre">A-t-elle un enfant ?</span>
+                <div className="choix" role="radiogroup" aria-label={t('A un enfant')}>
+                  <span className="choix__titre">{t('A-t-elle un enfant ?')}</span>
                   <label className="case-a-cocher">
                     <input
                       type="radio" name="a_enfant" value="oui" required
                       checked={form.a_enfant === 'oui'} onChange={maj('a_enfant')}
                     />
-                    Oui
+                    {t('Oui')}
                   </label>
                   <label className="case-a-cocher">
                     <input
@@ -243,12 +267,12 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
                       checked={form.a_enfant === 'non'}
                       onChange={(e) => setForm({ ...form, a_enfant: e.target.value, age_dernier_enfant: '' })}
                     />
-                    Non
+                    {t('Non')}
                   </label>
                 </div>
                 {form.a_enfant === 'oui' && (
                   <label>
-                    Âge du dernier enfant (en années, 0 s’il a moins d’un an)
+                    {t('Âge du dernier enfant (en années, 0 s’il a moins d’un an)')}
                     <input
                       type="number" min="0" max="40" step="1" required
                       value={form.age_dernier_enfant} onChange={maj('age_dernier_enfant')}
@@ -257,8 +281,7 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
                 )}
               </div>
               <p className="texte-discret">
-                Dernier enfant de 6 ans ou moins : 21 jours de congé annuel par an ; sinon 18 jours
-                (dans les deux cas, à partir d’un an d’ancienneté).
+                {t('Dernier enfant de 6 ans ou moins : 21 jours de congé annuel par an ; sinon 18 jours (dans les deux cas, à partir d’un an d’ancienneté).')}
               </p>
             </fieldset>
           )}
@@ -267,7 +290,7 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
 
       {form.role === 'DIRECTEUR' && (
         <fieldset className="formulaire__groupe">
-          <legend>Départements supervisés (un directeur peut en superviser plusieurs)</legend>
+          <legend>{t('Départements supervisés (un directeur peut en superviser plusieurs)')}</legend>
           <div className="formulaire__ligne">
             {departements.map((d) => (
               <label key={d.id} className="case-a-cocher">
@@ -278,11 +301,11 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
                 />
                 {d.nom}
                 {d.directeur && d.directeur_nom && !form.departements_supervises.includes(d.id) && (
-                  <span className="texte-discret"> (actuellement : {d.directeur_nom})</span>
+                  <span className="texte-discret"> {t('(actuellement : {nom})', { nom: d.directeur_nom })}</span>
                 )}
               </label>
             ))}
-            {departements.length === 0 && <span className="texte-discret">Aucun département créé.</span>}
+            {departements.length === 0 && <span className="texte-discret">{t('Aucun département créé.')}</span>}
           </div>
         </fieldset>
       )}
@@ -293,17 +316,17 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
             type="checkbox" checked={form.actif}
             onChange={(e) => setForm({ ...form, actif: e.target.checked })}
           />
-          Compte actif (décocher pour empêcher la connexion)
+          {t('Compte actif (décocher pour empêcher la connexion)')}
         </label>
       )}
 
       <Alerte type="erreur">{erreur}</Alerte>
       <div className="tableau__actions">
         <button className="bouton bouton--primaire" type="submit" disabled={enCours}>
-          {modification ? 'Enregistrer les modifications' : 'Créer le compte'}
+          {modification ? t('Enregistrer les modifications') : t('Créer le compte')}
         </button>
         {onAnnuler && (
-          <button type="button" className="bouton bouton--discret" onClick={onAnnuler}>Annuler</button>
+          <button type="button" className="bouton bouton--discret" onClick={onAnnuler}>{t('Annuler')}</button>
         )}
       </div>
     </form>
@@ -311,6 +334,7 @@ function FormulaireUtilisateur({ initial, departements, modification, onSoumis, 
 }
 
 export default function UtilisateursPage() {
+  const { t } = useI18n()
   const [utilisateurs, setUtilisateurs] = useState(null)
   const [departements, setDepartements] = useState([])
   const [afficherCreation, setAfficherCreation] = useState(false)
@@ -339,14 +363,14 @@ export default function UtilisateursPage() {
   async function creer(charge) {
     await api.post('/utilisateurs/', charge)
     setAfficherCreation(false)
-    setMessage('Compte créé.')
+    setMessage(t('Compte créé.'))
     await charger()
   }
 
   async function modifier(charge) {
     await api.patch(`/utilisateurs/${enEdition.id}/`, charge)
     setEnEdition(null)
-    setMessage('Compte mis à jour.')
+    setMessage(t('Compte mis à jour.'))
     await charger()
   }
 
@@ -362,9 +386,9 @@ export default function UtilisateursPage() {
 
   async function supprimer(u) {
     const ok = window.confirm(
-      `Supprimer définitivement le compte de ${u.first_name} ${u.last_name} (${u.username}) ?\n\n` +
-      'Ses demandes de congé, ses soldes et ses notifications seront aussi supprimés. ' +
-      'Cette action est irréversible. Pour conserver l’historique, désactivez plutôt le compte.'
+      t('Supprimer définitivement le compte de {prenom} {nom} ({identifiant}) ?', { prenom: u.first_name, nom: u.last_name, identifiant: u.username }) + '\n\n' +
+      t('Ses demandes de congé, ses soldes et ses notifications seront aussi supprimés.') + ' ' +
+      t('Cette action est irréversible. Pour conserver l’historique, désactivez plutôt le compte.')
     )
     if (!ok) return
     setErreurSuppression('')
@@ -373,7 +397,7 @@ export default function UtilisateursPage() {
       await api.delete(`/utilisateurs/${u.id}/`)
       if (enEdition?.id === u.id) setEnEdition(null)
       await charger()  // le message n'apparaît qu'une fois l'annuaire à jour
-      setMessage(`Compte de ${u.first_name} ${u.last_name} supprimé.`)
+      setMessage(t('Compte de {prenom} {nom} supprimé.', { prenom: u.first_name, nom: u.last_name }))
     } catch (err) {
       setErreurSuppression(messageErreur(err))
     }
@@ -382,12 +406,12 @@ export default function UtilisateursPage() {
   return (
     <div className="page">
       <div className="page__entete">
-        <h1>Comptes utilisateurs</h1>
+        <h1>{t('Comptes utilisateurs')}</h1>
         <button
           className="bouton bouton--primaire"
           onClick={() => { setAfficherCreation(!afficherCreation); setEnEdition(null); setMessage('') }}
         >
-          {afficherCreation ? 'Fermer' : '+ Nouveau compte'}
+          {afficherCreation ? t('Fermer') : t('+ Nouveau compte')}
         </button>
       </div>
 
@@ -395,7 +419,7 @@ export default function UtilisateursPage() {
       <Alerte type="erreur">{erreurSuppression}</Alerte>
 
       {afficherCreation && (
-        <Carte titre="Créer un compte">
+        <Carte titre={t('Créer un compte')}>
           <FormulaireUtilisateur
             initial={VIDE} departements={departements} modification={false}
             onSoumis={creer} onAnnuler={() => setAfficherCreation(false)}
@@ -404,7 +428,7 @@ export default function UtilisateursPage() {
       )}
 
       {enEdition && (
-        <Carte titre={`Modifier le compte de ${enEdition.first_name} ${enEdition.last_name}`}>
+        <Carte titre={t('Modifier le compte de {prenom} {nom}', { prenom: enEdition.first_name, nom: enEdition.last_name })}>
           <FormulaireUtilisateur
             key={enEdition.id}
             initial={versFormulaire(enEdition)} departements={departements} modification
@@ -413,17 +437,17 @@ export default function UtilisateursPage() {
         </Carte>
       )}
 
-      <Carte titre="Annuaire">
+      <Carte titre={t('Annuaire')}>
         {utilisateurs === null ? (
           <Chargement />
         ) : (
           <table className="tableau">
             <thead>
               <tr>
-                <EnteteTriable cle="nom" tri={tri} onTrier={trierPar}>Nom</EnteteTriable><th>Identifiant</th><th>Matricule</th><th>Sexe</th>
+                <EnteteTriable cle="nom" tri={tri} onTrier={trierPar}>Nom</EnteteTriable><th>{t('Identifiant')}</th><th>{t('Matricule')}</th><th>{t('Sexe')}</th>
                 <EnteteTriable cle="role" tri={tri} onTrier={trierPar}>Rôle</EnteteTriable>
                 <EnteteTriable cle="departement" tri={tri} onTrier={trierPar}>Département</EnteteTriable>
-                <th>Ancienneté</th><th>Supervise</th><th>Actif</th><th>Actions</th>
+                <th>{t('Ancienneté')}</th><th>{t('Supervise')}</th><th>{t('Actif')}</th><th>{t('Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -432,7 +456,7 @@ export default function UtilisateursPage() {
                   <td>
                     {u.first_name} {u.last_name}
                     <br /><span className="texte-discret">{u.email}</span>
-                    <br /><span className="texte-discret">{u.telephone || 'téléphone non renseigné'}</span>
+                    <br /><span className="texte-discret">{u.telephone || t('téléphone non renseigné')}</span>
                   </td>
                   <td>{u.username}</td>
                   <td>{u.matricule}</td>
@@ -443,15 +467,15 @@ export default function UtilisateursPage() {
                   </td>
                   <td>{u.departement_nom || '—'}</td>
                   <td>
-                    {u.role === 'EMPLOYE' ? (
+                    {ROLES_AVEC_CONGES.includes(u.role) ? (
                       u.anciennete_annees === null ? (
-                        <span className="texte-discret">date non renseignée</span>
+                        <span className="texte-discret">{t('date non renseignée')}</span>
                       ) : (
                         <>
-                          {libelleAnciennete(u.anciennete_annees)}
+                          {libelleAnciennete(u.anciennete_annees, t)}
                           <br />
                           <span className={`badge ${u.eligible_conge_annuel ? 'badge--a-venir' : 'badge--en-conge'}`}>
-                            {u.eligible_conge_annuel ? `Congé annuel · ${u.droit_conge_annuel} j` : 'Pas de solde'}
+                            {u.eligible_conge_annuel ? t('Congé annuel · {jours} j', { jours: u.droit_conge_annuel }) : t('Pas de solde')}
                           </span>
                         </>
                       )
@@ -462,17 +486,17 @@ export default function UtilisateursPage() {
                       ? (u.departements_supervises.map((d) => d.nom).join(', ') || '—')
                       : ''}
                   </td>
-                  <td>{u.actif ? 'Oui' : 'Non'}</td>
+                  <td>{u.actif ? t('Oui') : t('Non')}</td>
                   <td className="tableau__actions">
                     <button
                       className="bouton bouton--discret"
                       onClick={() => { setEnEdition(u); setAfficherCreation(false); setMessage(''); setErreurSuppression(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                     >
-                      Modifier
+                      {t('Modifier')}
                     </button>
                     {u.id !== profil.id && (
                       <button className="bouton bouton--danger" onClick={() => supprimer(u)}>
-                        Supprimer
+                        {t('Supprimer')}
                       </button>
                     )}
                   </td>

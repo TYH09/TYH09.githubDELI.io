@@ -87,6 +87,14 @@ class Sexe(models.TextChoices):
     FEMININ = "F", "Féminin"
 
 
+ROLES_AVEC_CONGES = (
+    RoleUtilisateur.EMPLOYE,
+    RoleUtilisateur.MANAGER,
+    RoleUtilisateur.RH,
+    RoleUtilisateur.DIRECTEUR,
+)
+
+
 class Utilisateur(AbstractUser):
     """Un seul modèle Utilisateur pour tous les acteurs du système."""
 
@@ -102,11 +110,7 @@ class Utilisateur(AbstractUser):
         max_length=20,
         blank=True,
         default="",
-        validators=[RegexValidator(
-            r"^(\+|\()?[0-9][0-9 .\-()]{5,18}[0-9]$",
-            "Numéro de téléphone invalide (chiffres, espaces, +, - ou parenthèses ; 7 à 20 caractères).",
-        )],
-        help_text="Facultatif. Ex. : +237 6 70 12 34 56.",
+        help_text="Facultatif. Chiffres uniquement, 9 à 13 (le « + » initial compte pour un). Ex. : +237 674 847 765.",
     )
     role = models.CharField(max_length=20, choices=RoleUtilisateur.choices, default=RoleUtilisateur.EMPLOYE)
     fonction_direction = models.CharField(
@@ -161,6 +165,17 @@ class Utilisateur(AbstractUser):
     @property
     def est_administrateur(self):
         return self.role == RoleUtilisateur.ADMINISTRATEUR
+
+    @property
+    def est_daf(self):
+        """Directeur Administratif et Financier : valide les congés du RH."""
+        return self.role == RoleUtilisateur.DIRECTEUR and self.fonction_direction == FonctionDirection.DAF
+
+    @property
+    def peut_demander_conge(self):
+        """Employés, chefs de département, RH et directeurs posent des congés
+        et sont soumis aux mêmes règles (sexe, date d'entrée, enfant…)."""
+        return self.role in ROLES_AVEC_CONGES
 
     # -- Ancienneté & droit au congé annuel --------------------------------
     def anciennete_annees(self, a_date=None):

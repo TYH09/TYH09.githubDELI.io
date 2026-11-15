@@ -108,7 +108,7 @@ class SexeEtCongesReservesTests(BaseV2):
     def _payload(self, **extra):
         data = {
             "username": "nouveau", "password": "Zx9#kLm!2026", "first_name": "N", "last_name": "V",
-            "email": "n@v.local", "matricule": "N1", "role": "EMPLOYE", "sexe": "F", "a_enfant": False,
+            "email": "n@v.local", "matricule": "NOUVEAU001", "role": "EMPLOYE", "sexe": "F", "a_enfant": False,
             "date_embauche": "2020-01-15",
         }
         data.update(extra)
@@ -174,15 +174,16 @@ class EditionComptesParAdminTests(BaseV2):
         self.client.force_authenticate(user=self.admin)
         resp = self.client.patch(f"/api/utilisateurs/{self.femme.pk}/", {
             "first_name": "Marie", "last_name": "Nkou", "username": "m.nkou",
-            "email": "marie@delifood.local", "matricule": "MAT-77", "sexe": "F",
+            "email": "marie@delifood.local", "matricule": "MAT00077", "sexe": "F",
             "role": "MANAGER", "departement": self.compta.pk, "password": "Nouveau#Mdp2026",
+            "date_embauche": "2020-01-15", "a_enfant": False,
         }, format="json")
         self.assertEqual(resp.status_code, 200, resp.data)
         self.femme.refresh_from_db()
         self.assertEqual(
             (self.femme.first_name, self.femme.last_name, self.femme.username, self.femme.email,
              self.femme.matricule, self.femme.role, self.femme.departement_id),
-            ("Marie", "Nkou", "m.nkou", "marie@delifood.local", "MAT-77", "MANAGER", self.compta.pk),
+            ("Marie", "Nkou", "m.nkou", "marie@delifood.local", "MAT00077", "MANAGER", self.compta.pk),
         )
         # le nouveau mot de passe fonctionne, l'ancien non
         self.client.force_authenticate(user=None)
@@ -197,9 +198,10 @@ class EditionComptesParAdminTests(BaseV2):
         self.assertEqual(resp.status_code, 400)
 
     def test_identifiant_et_matricule_doivent_rester_uniques(self):
+        Utilisateur.objects.filter(pk=self.homme.pk).update(matricule="HOMME0001")
         self.client.force_authenticate(user=self.admin)
         r1 = self.client.patch(f"/api/utilisateurs/{self.femme.pk}/", {"username": "homme"}, format="json")
-        r2 = self.client.patch(f"/api/utilisateurs/{self.femme.pk}/", {"matricule": "HOMME"}, format="json")
+        r2 = self.client.patch(f"/api/utilisateurs/{self.femme.pk}/", {"matricule": "HOMME0001"}, format="json")
         self.assertEqual((r1.status_code, r2.status_code), (400, 400))
 
     def test_seul_l_admin_peut_modifier_un_compte(self):
@@ -227,13 +229,15 @@ class EditionComptesParAdminTests(BaseV2):
 
     def test_dernier_admin_actif_protege(self):
         self.client.force_authenticate(user=self.admin)
-        resp = self.client.patch(f"/api/utilisateurs/{self.admin.pk}/", {"role": "RH"}, format="json")
+        resp = self.client.patch(f"/api/utilisateurs/{self.admin.pk}/", {"role": "RH", "date_embauche": "2020-01-15"}, format="json")
         self.assertEqual(resp.status_code, 400)
         resp = self.client.patch(f"/api/utilisateurs/{self.admin.pk}/", {"actif": False}, format="json")
         self.assertEqual(resp.status_code, 400)
         # avec un second admin actif, c'est permis
         creer("admin2", RoleUtilisateur.ADMINISTRATEUR, sexe="F")
-        resp = self.client.patch(f"/api/utilisateurs/{self.admin.pk}/", {"role": "RH"}, format="json")
+        resp = self.client.patch(
+            f"/api/utilisateurs/{self.admin.pk}/", {"role": "RH", "date_embauche": "2020-01-15"}, format="json"
+        )
         self.assertEqual(resp.status_code, 200, resp.data)
 
     def test_desactivation_empeche_la_connexion(self):
@@ -251,7 +255,7 @@ class EditionComptesParAdminTests(BaseV2):
 
     def test_perdre_le_role_directeur_libere_ses_departements(self):
         self.client.force_authenticate(user=self.admin)
-        self.client.patch(f"/api/utilisateurs/{self.dir_a.pk}/", {"role": "RH"}, format="json")
+        self.client.patch(f"/api/utilisateurs/{self.dir_a.pk}/", {"role": "RH", "date_embauche": "2020-01-15"}, format="json")
         self.prod.refresh_from_db()
         self.compta.refresh_from_db()
         self.assertIsNone(self.prod.directeur)
@@ -425,8 +429,8 @@ class DirecteurMultiDepartementsTests(BaseV2):
         self.client.force_authenticate(user=self.admin)
         resp = self.client.post("/api/utilisateurs/", {
             "username": "dg", "password": "Zx9#kLm!2026", "first_name": "D", "last_name": "G",
-            "matricule": "DG1", "role": "DIRECTEUR", "fonction_direction": "DG", "sexe": "M",
-            "departements_supervises": [self.logistique.pk],
+            "matricule": "DIRGEN001", "role": "DIRECTEUR", "fonction_direction": "DG", "sexe": "M",
+            "date_embauche": "2020-01-15", "departements_supervises": [self.logistique.pk],
         }, format="json")
         self.assertEqual(resp.status_code, 201, resp.data)
         self.logistique.refresh_from_db()

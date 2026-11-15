@@ -5,6 +5,7 @@ import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
 import Justificatif from '../components/Justificatif'
+import { useI18n } from '../i18n/I18nContext'
 
 /**
  * Page générique de validation à un niveau donné du circuit — réutilisée
@@ -12,6 +13,7 @@ import Justificatif from '../components/Justificatif'
  * finale), qui partagent le même patron d'interaction.
  */
 function LigneAValider({ demande, actionPath, onTraitee }) {
+  const { t } = useI18n()
   const [commentaire, setCommentaire] = useState('')
   const [enCours, setEnCours] = useState('')
   const [erreur, setErreur] = useState('')
@@ -38,24 +40,24 @@ function LigneAValider({ demande, actionPath, onTraitee }) {
         <br />
         <span className="texte-discret">{demande.utilisateur_detail.departement_nom}</span>
       </td>
-      <td>{demande.type_conge_libelle}</td>
+      <td>{t(demande.type_conge_libelle)}</td>
       <td>{demande.date_debut} → {demande.date_fin}</td>
-      <td>{demande.est_maternite ? `${demande.nb_jours_decomptes} (maternité, calendaires)` : demande.nb_jours_ouvres}</td>
+      <td>{demande.est_maternite ? t('{n} (maternité, calendaires)', { n: demande.nb_jours_decomptes }) : demande.nb_jours_ouvres}</td>
       <td>{demande.motif || '—'}</td>
       <td><Justificatif demande={demande} /></td>
       <td className="validation__action">
         <input
           type="text"
-          placeholder="Commentaire (optionnel)"
+          placeholder={t('Commentaire (optionnel)')}
           value={commentaire}
           onChange={(e) => setCommentaire(e.target.value)}
         />
         <div className="tableau__actions">
           <button className="bouton bouton--succes" disabled={!!enCours} onClick={() => decider('APPROUVE')}>
-            {enCours === 'APPROUVE' ? '…' : 'Approuver'}
+            {enCours === 'APPROUVE' ? '…' : t('Approuver')}
           </button>
           <button className="bouton bouton--danger" disabled={!!enCours} onClick={() => decider('REFUSE')}>
-            {enCours === 'REFUSE' ? '…' : 'Refuser'}
+            {enCours === 'REFUSE' ? '…' : t('Refuser')}
           </button>
         </div>
         <Alerte type="erreur">{erreur}</Alerte>
@@ -65,6 +67,7 @@ function LigneAValider({ demande, actionPath, onTraitee }) {
 }
 
 export default function ValidationsEnAttentePage({ niveau, actionPath, titre }) {
+  const { t } = useI18n()
   const [demandes, setDemandes] = useState(null)
 
   const charger = useCallback(() => {
@@ -81,16 +84,16 @@ export default function ValidationsEnAttentePage({ niveau, actionPath, titre }) 
 
   return (
     <div className="page">
-      <h1>{titre}</h1>
+      <h1>{t(titre)}</h1>
       <Carte>
         {demandes === null ? (
           <Chargement />
         ) : demandes.length === 0 ? (
-          <p className="texte-discret">Aucune demande en attente de votre décision 🎉</p>
+          <p className="texte-discret">{t('Aucune demande en attente de votre décision 🎉')}</p>
         ) : (
           <table className="tableau">
             <thead>
-              <tr><th>Employé</th><th>Type</th><th>Période</th><th>Jours ouvrés</th><th>Motif</th><th>Justificatif</th><th>Décision</th></tr>
+              <tr><th>{t('Employé')}</th><th>{t('Type')}</th><th>{t('Période')}</th><th>{t('Jours ouvrés')}</th><th>{t('Motif')}</th><th>{t('Justificatif')}</th><th>{t('Décision')}</th></tr>
             </thead>
             <tbody>
               {demandes.map((d) => (

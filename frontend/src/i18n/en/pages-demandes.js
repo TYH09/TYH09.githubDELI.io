@@ -1,0 +1,128 @@
+// Traductions anglaises — tableau de bord, demandes de congé, validations, justificatifs.
+// Clé = texte français exact passé à t() ; {valeur} = valeur injectée ; {n:|s} = pluriel anglais.
+export default {
+  // Communs aux tableaux de demandes
+  "Type": "Type",
+  "Période": "Period",
+  "Jours décomptés": "Days deducted",
+  "Statut": "Status",
+  "Jours ouvrés": "Working days",
+  "Motif": "Reason",
+  "Justificatif": "Supporting document",
+  "Décision": "Decision",
+  "Commentaire (optionnel)": "Comment (optional)",
+  "Approuver": "Approve",
+  "Refuser": "Reject",
+  "Approuvé": "Approved",
+  "Refusé": "Rejected",
+  "Chef de département": "Department head",
+  "Motif :": "Reason:",
+  "Durée :": "Duration:",
+  "{n} mois": "{n} month{n:|s}",
+  "{m} mois": "{m} month{m:|s}",
+  "reprise le {date}": "return on {date}",
+  "Aucune validation enregistrée pour l’instant.": "No approvals recorded yet.",
+  "Confirmer l’annulation de cette demande ?": "Confirm cancellation of this request?",
+  "← Retour": "← Back",
+
+  // Justificatif
+  "Aucun justificatif": "No supporting document",
+  "Impossible d’ouvrir le justificatif.": "Unable to open the supporting document.",
+  "📎 Voir le justificatif": "📎 View supporting document",
+
+  // Tableau de bord
+  "j. restants": "days left",
+  "{pris} pris sur {acquis} acquis ({annee})": "{pris} taken out of {acquis} earned ({annee})",
+  "Votre date d’entrée à l’usine n’est pas renseignée : aucun solde de congé annuel n’est disponible. Contactez l’administrateur.":
+    "Your factory start date is not set: no annual leave balance is available. Please contact the administrator.",
+  "Vous avez moins d’un an d’ancienneté : vous n’avez pas encore de solde de congé annuel. Il vous sera attribué (18 jours par an, 21 jours si votre dernier enfant a 6 ans ou moins) à votre premier anniversaire dans l’entreprise.":
+    "You have less than one year of service: you do not have an annual leave balance yet. It will be granted (18 days per year, 21 days if your youngest child is 6 or under) on your first anniversary with the company.",
+  "Aucun solde initialisé pour cette année.": "No balance has been set up for this year.",
+  "Mes dernières demandes": "My latest requests",
+  "Voir tout / Nouvelle demande": "View all / New request",
+  "Aucune demande pour le moment.": "No requests yet.",
+  "Demandes à valider": "Requests to approve",
+  "en attente de votre décision": "awaiting your decision",
+  "Traiter les demandes": "Process requests",
+  "Absents aujourd’hui": "Absent today",
+  "collaborateur(s) de votre département en congé": "colleague(s) from your department on leave",
+  "Voir les absences": "View absences",
+  "Demandes en attente": "Pending requests",
+  "Salariés sans congé annuel cette année": "Employees with no annual leave this year",
+  "Alertes solde faible": "Low balance alerts",
+  "Voir le détail par département": "View details by department",
+  "Gérer les comptes": "Manage accounts",
+  "Gérer les départements": "Manage departments",
+  "Paramètres système": "System settings",
+  "Valeurs par défaut": "Default values",
+  "Types de congés": "Leave types",
+  "Délai minimum et seuil par type": "Minimum notice and threshold by type",
+  "Salut {nom} 👋": "Hi {nom} 👋",
+
+  // Détail d'une demande
+  "Votre décision": "Your decision",
+  "Demande introuvable": "Request not found",
+  "Cette demande n’existe pas ou n’entre pas dans votre périmètre.": "This request does not exist or is outside your scope.",
+  "Demande approuvée.": "Request approved.",
+  "Demande refusée.": "Request rejected.",
+  "Demande annulée.": "Request cancelled.",
+  "Demande de congé n° {id}": "Leave request #{id}",
+  "Demandeur": "Requester",
+  "e-mail non renseigné": "email not provided",
+  "Demande": "Request",
+  "{n} jours calendaires décomptés": "{n} calendar days deducted",
+  "{n} jour(s) ouvré(s)": "{n} working day{n:|s}",
+  "Historique des validations": "Approval history",
+  "un compte supprimé": "a deleted account",
+  "Annuler cette demande": "Cancel this request",
+  "Retour aux demandes à valider": "Back to requests to approve",
+
+  // Mes demandes
+  "Nouvelle demande de congé": "New leave request",
+  "Type de congé": "Leave type",
+  "Date de début": "Start date",
+  "Date de fin": "End date",
+  "Durée du congé de maternité (3 mois par an au total)": "Maternity leave duration (3 months per year in total)",
+  "(indisponible : solde insuffisant)": "(unavailable: insufficient balance)",
+  "Indiquez votre date de départ : la date de fin et la date de retour sont calculées automatiquement. Si vous prenez 1 mois, il vous restera 1 ou 2 mois ; après 2 mois, il vous restera 1 mois ; après 3 mois, le congé de maternité n’est plus disponible cette année.":
+    "Enter your departure date: the end date and return date are calculated automatically. If you take 1 month, you will have 1 or 2 months left; after 2 months, you will have 1 month left; after 3 months, maternity leave is no longer available this year.",
+  "Vous avez déjà pris ou demandé les 3 mois de congé de maternité pour {annee} : il n’est plus disponible cette année.":
+    "You have already taken or requested all 3 months of maternity leave for {annee}: it is no longer available this year.",
+  "Fin du congé :": "Leave ends:",
+  "reprise du travail :": "return to work:",
+  "{jours} jours décomptés de votre solde de maternité": "{jours} days deducted from your maternity balance",
+  "({jours} j. disponibles avant cette demande)": "({jours} days available before this request)",
+  "Motif (optionnel)": "Reason (optional)",
+  "Justificatif (PDF, PNG ou JPEG, 5 Mo max)": "Supporting document (PDF, PNG or JPEG, 5 MB max)",
+  "(obligatoire pour ce type)": "(required for this type)",
+  "Votre date d’entrée à l’usine n’est pas renseignée : vous ne disposez pas de solde de congé annuel. Contactez l’administrateur.":
+    "Your factory start date is not set: you do not have an annual leave balance. Please contact the administrator.",
+  "Vous n’avez pas encore un an d’ancienneté : vous ne disposez pas de solde de congé annuel pour le moment.":
+    "You do not have one year of service yet: you do not have an annual leave balance for now.",
+  "Envoi…": "Sending…",
+  "Soumettre la demande": "Submit request",
+  "{n} (calendaires)": "{n} (calendar days)",
+  "Masquer": "Hide",
+  "Détails": "Details",
+  "Mes demandes de congé": "My leave requests",
+  "+ Nouvelle demande": "+ New request",
+  "Historique": "History",
+  "Vous n’avez encore soumis aucune demande.": "You have not submitted any requests yet.",
+
+  // Demandes à valider
+  "{n} (maternité, calendaires)": "{n} (maternity, calendar days)",
+  "Aucune demande en attente de votre décision 🎉": "No requests awaiting your decision 🎉",
+
+  // Circuits à 1 niveau (RH, chef de département, directeur) et champ mot de passe
+  "Demandes à valider — Directeurs (décision finale)": "Requests to approve — Directors (final decision)",
+  "Demandes des directeurs à valider": "Directors' requests to approve",
+  "Demandes des directeurs — Responsable RH": "Directors' requests — HR manager",
+  "En attente — Responsable RH": "Pending — HR manager",
+  "Direction": "Management",
+  "Responsable RH": "HR manager",
+  "Validation à 1 niveau — {valideur}": "Single-level approval — {valideur}",
+  "Masquer le mot de passe": "Hide password",
+  "Afficher le mot de passe": "Show password",
+  "8 à 16 caractères : lettres et chiffres, au moins un chiffre (mis en majuscules automatiquement)":
+    "8 to 16 characters: letters and digits, at least one digit (automatically uppercased)",
+}

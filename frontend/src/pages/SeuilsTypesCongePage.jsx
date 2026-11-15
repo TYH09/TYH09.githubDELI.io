@@ -4,6 +4,7 @@ import api, { listerTout, messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 const texte = (v) => (v === null || v === undefined ? '' : String(v))
 const enNombre = (v) => (v === '' ? null : Number(v))
@@ -14,6 +15,7 @@ const enNombre = (v) => (v === '' ? null : Number(v))
  * vide signifie « utiliser le paramètre système par défaut ».
  */
 export default function SeuilsTypesCongePage() {
+  const { t } = useI18n()
   const [types, setTypes] = useState(null)
   const [saisies, setSaisies] = useState({})   // id -> { delai, seuil } (texte saisi)
   const [defauts, setDefauts] = useState(null)
@@ -39,9 +41,9 @@ export default function SeuilsTypesCongePage() {
     return () => { actif = false }
   }, [])
 
-  const modifie = (t) => {
-    const s = saisies[t.id]
-    return s && (s.delai !== texte(t.delai_minimum_jours) || s.seuil !== texte(t.seuil_alerte_jours))
+  const modifie = (type) => {
+    const s = saisies[type.id]
+    return s && (s.delai !== texte(type.delai_minimum_jours) || s.seuil !== texte(type.seuil_alerte_jours))
   }
 
   function saisir(id, champ, valeur) {
@@ -49,17 +51,17 @@ export default function SeuilsTypesCongePage() {
     setSaisies({ ...saisies, [id]: { ...saisies[id], [champ]: valeur } })
   }
 
-  async function enregistrer(t) {
+  async function enregistrer(type) {
     setErreur('')
     setSucces('')
     try {
-      const { data } = await api.patch(`/types-conge/${t.id}/`, {
-        delai_minimum_jours: enNombre(saisies[t.id].delai),
-        seuil_alerte_jours: enNombre(saisies[t.id].seuil),
+      const { data } = await api.patch(`/types-conge/${type.id}/`, {
+        delai_minimum_jours: enNombre(saisies[type.id].delai),
+        seuil_alerte_jours: enNombre(saisies[type.id].seuil),
       })
-      setTypes((liste) => liste.map((x) => (x.id === t.id ? data : x)))
-      setSaisies((s) => ({ ...s, [t.id]: { delai: texte(data.delai_minimum_jours), seuil: texte(data.seuil_alerte_jours) } }))
-      setSucces(`Seuils de « ${t.libelle} » enregistrés.`)
+      setTypes((liste) => liste.map((x) => (x.id === type.id ? data : x)))
+      setSaisies((s) => ({ ...s, [type.id]: { delai: texte(data.delai_minimum_jours), seuil: texte(data.seuil_alerte_jours) } }))
+      setSucces(t('Seuils de « {libelle} » enregistrés.', { libelle: t(type.libelle) }))
     } catch (err) {
       setErreur(messageErreur(err))
     }
@@ -69,52 +71,51 @@ export default function SeuilsTypesCongePage() {
 
   return (
     <div className="page">
-      <h1>Délais et seuils par type de congé</h1>
-      <Carte titre="Types définis par la RH">
+      <h1>{t('Délais et seuils par type de congé')}</h1>
+      <Carte titre={t('Types définis par la RH')}>
         <p className="texte-discret">
-          Pour chaque type de congé, fixez le <strong>délai minimum de soumission</strong> (jours entre la demande et
-          le début du congé) et le <strong>seuil d’alerte</strong> de solde faible (jours restants, signalés à la RH).
-          Un champ vide applique la valeur par défaut des{' '}
-          <Link to="/admin/parametres">paramètres système</Link>
-          {defauts && <> ({defauts.delai_minimum_jours} j de délai, {defauts.seuil_alerte_solde_jours} j de seuil)</>}.
-          Les types eux-mêmes sont créés et modifiés par la RH.
+          {t('Pour chaque type de congé, fixez le')} <strong>{t('délai minimum de soumission')}</strong> {t('(jours entre la demande et le début du congé) et le')} <strong>{t('seuil d’alerte')}</strong> {t('de solde faible (jours restants, signalés à la RH).')}
+          {' '}{t('Un champ vide applique la valeur par défaut des')}{' '}
+          <Link to="/admin/parametres">{t('paramètres système')}</Link>
+          {defauts && <> ({t('{delai} j de délai, {seuil} j de seuil', { delai: defauts.delai_minimum_jours, seuil: defauts.seuil_alerte_solde_jours })})</>}.
+          {' '}{t('Les types eux-mêmes sont créés et modifiés par la RH.')}
         </p>
         <Alerte type="erreur">{erreur}</Alerte>
         <Alerte type="succes">{succes}</Alerte>
         <table className="tableau">
           <thead>
             <tr>
-              <th>Type de congé</th><th>Décompté du solde</th>
-              <th>Délai minimum (jours)</th><th>Seuil d’alerte (jours)</th><th></th>
+              <th>{t('Type de congé')}</th><th>{t('Décompté du solde')}</th>
+              <th>{t('Délai minimum (jours)')}</th><th>{t('Seuil d’alerte (jours)')}</th><th></th>
             </tr>
           </thead>
           <tbody>
-            {types.map((t) => (
-              <tr key={t.id}>
-                <td>{t.libelle}</td>
-                <td>{t.decompte_solde ? 'Oui' : 'Non'}</td>
+            {types.map((type) => (
+              <tr key={type.id}>
+                <td>{t(type.libelle)}</td>
+                <td>{type.decompte_solde ? t('Oui') : t('Non')}</td>
                 <td>
                   <input
-                    type="number" min="0" max="365" aria-label={`Délai minimum de ${t.libelle}`}
-                    placeholder={defauts ? `défaut : ${defauts.delai_minimum_jours}` : ''}
-                    value={saisies[t.id].delai} onChange={(e) => saisir(t.id, 'delai', e.target.value)}
+                    type="number" min="0" max="365" aria-label={t('Délai minimum de {libelle}', { libelle: t(type.libelle) })}
+                    placeholder={defauts ? t('défaut : {n}', { n: defauts.delai_minimum_jours }) : ''}
+                    value={saisies[type.id].delai} onChange={(e) => saisir(type.id, 'delai', e.target.value)}
                     style={{ width: 150 }}
                   />
                 </td>
                 <td>
                   <input
-                    type="number" min="0" max="365" aria-label={`Seuil d’alerte de ${t.libelle}`}
-                    placeholder={defauts ? `défaut : ${defauts.seuil_alerte_solde_jours}` : ''}
-                    value={saisies[t.id].seuil} onChange={(e) => saisir(t.id, 'seuil', e.target.value)}
+                    type="number" min="0" max="365" aria-label={t('Seuil d’alerte de {libelle}', { libelle: t(type.libelle) })}
+                    placeholder={defauts ? t('défaut : {n}', { n: defauts.seuil_alerte_solde_jours }) : ''}
+                    value={saisies[type.id].seuil} onChange={(e) => saisir(type.id, 'seuil', e.target.value)}
                     style={{ width: 150 }}
                   />
                 </td>
                 <td>
                   <button
-                    className="bouton bouton--primaire" disabled={!modifie(t)}
-                    aria-label={`Enregistrer ${t.libelle}`} onClick={() => enregistrer(t)}
+                    className="bouton bouton--primaire" disabled={!modifie(type)}
+                    aria-label={t('Enregistrer {libelle}', { libelle: t(type.libelle) })} onClick={() => enregistrer(type)}
                   >
-                    Enregistrer
+                    {t('Enregistrer')}
                   </button>
                 </td>
               </tr>

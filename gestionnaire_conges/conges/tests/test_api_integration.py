@@ -175,7 +175,7 @@ class APIWorkflowTests(APITestCase):
     def test_seul_administrateur_peut_creer_un_compte(self):
         self.client.force_authenticate(user=self.rh)
         resp = self.client.post("/api/utilisateurs/", {
-            "username": "nouveau", "password": "Pass#1234", "matricule": "N1",
+            "username": "nouveau", "password": "Pass#1234", "matricule": "NOUVEAU001",
             "role": "EMPLOYE",
         }, format="json")
         self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)

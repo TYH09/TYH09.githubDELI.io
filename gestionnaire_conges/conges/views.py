@@ -17,17 +17,17 @@ from accounts.models import RoleUtilisateur
 
 from .models import (
     DemandeConge, JournalAudit, JourFerie, Notification,
-    ParametresSysteme, RegleMetierError, SoldeConge, StatutDemande, TypeConge,
+    ParametresSysteme, RegleMetierError, SoldeConge, STATUTS_EN_ATTENTE, StatutDemande, TypeConge,
     date_de_retour,
 )
-from .permissions import EstDirecteur, EstManager, EstRHOuAdministrateur, LectureSeuleOuRHAdmin
+from .permissions import EstDirecteur, EstManager, EstRH, EstRHOuAdministrateur, LectureSeuleOuRHAdmin
 from .serializers import (
     DecisionValidationSerializer, DemandeCongeCreateSerializer, DemandeCongeSerializer,
     JournalAuditSerializer, JourFerieSerializer, NotificationSerializer,
     ParametresSystemeSerializer, SoldeCongeSerializer, TypeCongeSerializer,
 )
 from .droits import propager_type_conge
-from .services import WorkflowError, soumettre_demande, valider_niveau
+from .services import WorkflowError, _directeurs_pour, soumettre_demande, valider_niveau
 from .models import NiveauValidation, DecisionValidation
 
 
@@ -84,8 +84,9 @@ class SoldeCongeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class DemandeCongeViewSet(viewsets.ModelViewSet):
-    """Cœur du workflow : soumission (employé) et validation à deux niveaux
-    (Manager puis Direction Générale)."""
+    """Cœur du workflow : soumission (employé, chef de département, RH,
+    directeur) et validation — 2 niveaux pour un employé (Manager puis
+    Direction Générale), 1 niveau pour les trois autres rôles."""
 
     permission_classes = [IsAuthenticated]
     filterset_fields = ["statut", "type_conge", "utilisateur"]
@@ -102,27 +103,53 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = DemandeConge.objects.select_related("utilisateur", "type_conge").prefetch_related("validations")
         user = self.request.user
+        if self.request.query_params.get("mes") in ("1", "true"):
+            qs = qs.filter(utilisateur=user)  # « Mes demandes » (tous rôles qui posent des congés)
         if user.est_employe:
             return qs.filter(utilisateur=user)
         if user.est_manager:
-            # Le manager voit les demandes de son/ses département(s) dirigé(s)
-            return qs.filter(utilisateur__departement__responsable=user)
-        if user.est_directeur:
-            # Périmètre : demandes des départements qu'il supervise, plus celles
-            # des départements sans directeur affecté (et des employés sans
-            # département) pour qu'aucune demande ne reste sans décideur.
-            # Classées par département puis ancienneté (CDC §6.3).
+            # Le manager voit les demandes des employés de son/ses département(s)
+            # dirigé(s), plus les siennes (validées par son directeur).
             return qs.filter(
-                Q(utilisateur__departement__directeur=user)
-                | Q(utilisateur__departement__directeur__isnull=True)
-            ).order_by("utilisateur__departement__nom", "date_creation")
+                Q(utilisateur__departement__responsable=user, utilisateur__role=RoleUtilisateur.EMPLOYE)
+                | Q(utilisateur=user)
+            )
+        if user.est_directeur:
+            return self._queryset_directeur(qs, user)
         # RH / Administrateur : visibilité complète
         return qs
 
+    @staticmethod
+    def _queryset_directeur(qs, user):
+        """Périmètre d'un directeur : ses propres demandes ; les demandes des
+        employés des départements qu'il supervise (ou sans directeur affecté) ;
+        celles des chefs de département dont il est le directeur désigné ; celles
+        du RH si c'est le DAF. À défaut de directeur désigné (ou de DAF), toute
+        la Direction est concernée : aucune demande ne reste sans décideur.
+        Classées par département puis ancienneté (CDC §6.3)."""
+        from accounts.models import Utilisateur
+
+        qs = qs.annotate(
+            _dir_manager=Coalesce("utilisateur__departement_dirige__directeur_id", "utilisateur__departement__directeur_id"),
+        )
+        daf_existe = Utilisateur.objects.filter(
+            role=RoleUtilisateur.DIRECTEUR, fonction_direction="DAF", actif=True
+        ).exists()
+        voit_rh = user.est_daf or not daf_existe
+        perimetre = (
+            Q(utilisateur=user)
+            | Q(utilisateur__role=RoleUtilisateur.EMPLOYE)
+            & (Q(utilisateur__departement__directeur=user) | Q(utilisateur__departement__directeur__isnull=True))
+            | Q(utilisateur__role=RoleUtilisateur.MANAGER) & (Q(_dir_manager=user.pk) | Q(_dir_manager__isnull=True))
+        )
+        if voit_rh:
+            perimetre |= Q(utilisateur__role=RoleUtilisateur.RH)
+        return qs.filter(perimetre).order_by("utilisateur__departement__nom", "date_creation")
+
     def create(self, request, *args, **kwargs):
-        if not request.user.est_employe:
+        if not request.user.peut_demander_conge:
             return Response(
-                {"detail": "Seul un employé peut soumettre une demande de congé."},
+                {"detail": "Votre rôle ne permet pas de soumettre une demande de congé."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         serializer = self.get_serializer(data=request.data)
@@ -195,6 +222,9 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
     def valider_manager(self, request, pk=None):
         """Fragment 2 du diagramme de séquence — validation 1er niveau."""
         demande = self.get_object()
+        if demande.utilisateur_id == request.user.id or demande.utilisateur.role != RoleUtilisateur.EMPLOYE:
+            return Response({"detail": "Cette demande n'est pas validée par un chef de département."},
+                             status=status.HTTP_403_FORBIDDEN)
         if demande.utilisateur.departement_id and demande.utilisateur.departement.responsable_id != request.user.id:
             return Response({"detail": "Vous ne gérez pas le département de cet employé."},
                              status=status.HTTP_403_FORBIDDEN)
@@ -202,8 +232,22 @@ class DemandeCongeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="valider-direction", permission_classes=[EstDirecteur])
     def valider_direction(self, request, pk=None):
-        """Fragment 3 du diagramme de séquence — validation finale (2e niveau)."""
+        """Fragment 3 du diagramme de séquence — validation finale (2e niveau
+        pour un employé ; seul niveau pour un chef de département ou le RH)."""
+        demande = self.get_object()
+        if not _directeurs_pour(demande).filter(pk=request.user.pk).exists():
+            return Response({"detail": "Vous n'êtes pas le directeur désigné pour valider cette demande."},
+                             status=status.HTTP_403_FORBIDDEN)
         return self._valider(request, pk, NiveauValidation.DIRECTION)
+
+    @action(detail=True, methods=["post"], url_path="valider-rh", permission_classes=[EstRH])
+    def valider_rh(self, request, pk=None):
+        """Validation à 1 niveau de la demande d'un directeur par le responsable RH."""
+        demande = self.get_object()
+        if demande.utilisateur.role != RoleUtilisateur.DIRECTEUR:
+            return Response({"detail": "Seule la demande d'un directeur est validée par le responsable RH."},
+                             status=status.HTTP_403_FORBIDDEN)
+        return self._valider(request, pk, NiveauValidation.RH)
 
 
 class AbsencesEquipeView(APIView):
@@ -377,7 +421,7 @@ class DashboardRHView(APIView):
             return _reponse_annee_invalide()
 
         demandes_en_attente = DemandeConge.objects.filter(
-            statut__in=[StatutDemande.EN_ATTENTE_MANAGER, StatutDemande.EN_ATTENTE_DIRECTION]
+            statut__in=STATUTS_EN_ATTENTE
         ).count()
 
         from accounts.models import Departement, Utilisateur
@@ -434,7 +478,7 @@ class DemandesEnAttenteRHView(APIView):
     def get(self, request):
         demandes = (
             DemandeConge.objects.filter(
-                statut__in=[StatutDemande.EN_ATTENTE_MANAGER, StatutDemande.EN_ATTENTE_DIRECTION]
+                statut__in=STATUTS_EN_ATTENTE
             )
             .select_related("utilisateur", "utilisateur__departement", "type_conge")
             .prefetch_related("validations", "validations__auteur")
@@ -542,7 +586,7 @@ EN_TETES_EXPORT = [
 def _lignes_export(qs):
     for d in qs:
         decision_finale = next(
-            (v for v in reversed(list(d.validations.all())) if v.niveau == NiveauValidation.DIRECTION), None
+            (v for v in reversed(list(d.validations.all())) if v.niveau in (NiveauValidation.DIRECTION, NiveauValidation.RH)), None
         )
         yield [
             d.utilisateur.get_full_name(), d.utilisateur.matricule,

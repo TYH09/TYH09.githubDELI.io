@@ -3,8 +3,10 @@ import api, { listerTout, messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function DepartementsPage() {
+  const { t } = useI18n()
   const [departements, setDepartements] = useState(null)
   const [managers, setManagers] = useState([])
   const [directeurs, setDirecteurs] = useState([])
@@ -44,7 +46,7 @@ export default function DepartementsPage() {
   }
 
   async function supprimer(d) {
-    if (!window.confirm(`Supprimer le département « ${d.nom} » ? Cette action est irréversible.`)) return
+    if (!window.confirm(t('Supprimer le département « {nom} » ? Cette action est irréversible.', { nom: d.nom }))) return
     setErreur('')
     try {
       await api.delete(`/departements/${d.id}/`)
@@ -56,26 +58,26 @@ export default function DepartementsPage() {
 
   return (
     <div className="page">
-      <h1>Départements</h1>
+      <h1>{t('Départements')}</h1>
       <Alerte type="erreur">{erreur}</Alerte>
 
-      <Carte titre="Créer un département">
+      <Carte titre={t('Créer un département')}>
         <form className="formulaire formulaire--ligne" onSubmit={creer}>
           <label>
-            Nom
+            {t('Nom')}
             <input value={nom} onChange={(e) => setNom(e.target.value)} required />
           </label>
-          <button className="bouton bouton--primaire" type="submit">Créer</button>
+          <button className="bouton bouton--primaire" type="submit">{t('Créer')}</button>
         </form>
       </Carte>
 
-      <Carte titre="Départements existants">
+      <Carte titre={t('Départements existants')}>
         {departements === null ? (
           <Chargement />
         ) : (
           <table className="tableau">
             <thead>
-              <tr><th>Nom</th><th>Chef de département (1er niveau)</th><th>Directeur superviseur (2e niveau)</th><th></th></tr>
+              <tr><th>{t('Nom')}</th><th>{t('Chef de département (1er niveau)')}</th><th>{t('Directeur superviseur (2e niveau)')}</th><th></th></tr>
             </thead>
             <tbody>
               {departements.map((d) => (
@@ -83,7 +85,7 @@ export default function DepartementsPage() {
                   <td>{d.nom}</td>
                   <td>
                     <select value={d.responsable || ''} onChange={(e) => modifier(d.id, { responsable: e.target.value || null })}>
-                      <option value="">— Aucun —</option>
+                      <option value="">{t('— Aucun —')}</option>
                       {managers.map((m) => (
                         <option key={m.id} value={m.id}>{m.first_name} {m.last_name}</option>
                       ))}
@@ -91,11 +93,11 @@ export default function DepartementsPage() {
                   </td>
                   <td>
                     <select
-                      aria-label={`Directeur de ${d.nom}`}
+                      aria-label={t('Directeur de {nom}', { nom: d.nom })}
                       value={d.directeur || ''}
                       onChange={(e) => modifier(d.id, { directeur: e.target.value || null })}
                     >
-                      <option value="">— Toute la Direction —</option>
+                      <option value="">{t('— Toute la Direction —')}</option>
                       {directeurs.map((m) => (
                         <option key={m.id} value={m.id}>
                           {m.first_name} {m.last_name}{m.fonction_direction ? ` (${m.fonction_direction})` : ''}
@@ -104,7 +106,7 @@ export default function DepartementsPage() {
                     </select>
                   </td>
                   <td>
-                    <button className="bouton bouton--danger" onClick={() => supprimer(d)}>Supprimer</button>
+                    <button className="bouton bouton--danger" onClick={() => supprimer(d)}>{t('Supprimer')}</button>
                   </td>
                 </tr>
               ))}

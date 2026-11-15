@@ -2,8 +2,12 @@ import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import Alerte from '../components/Alerte'
+import ChampMotDePasse from '../components/ChampMotDePasse'
+import LangueSwitch from '../components/LangueSwitch'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function LoginPage() {
+  const { t } = useI18n()
   const { connecter, estConnecte, erreurConnexion } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -25,23 +29,24 @@ export default function LoginPage() {
 
   return (
     <div className="page-connexion">
+      <div className="page-connexion__langue"><LangueSwitch variante="clair" /></div>
       <form className="carte carte--connexion" onSubmit={handleSubmit}>
         <div className="entete__marque entete__marque--centree">
           <span className="entete__logo">GC</span>
-          <span>Gestionnaire de Congés</span>
+          <span>{t('Gestionnaire de Congés')}</span>
         </div>
         <p className="texte-discret">Delifood Agro-Industry</p>
         <label>
-          Identifiant
+          {t('Identifiant')}
           <input type="text" value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} autoFocus required />
         </label>
         <label>
-          Mot de passe
-          <input type="password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} required />
+          {t('Mot de passe')}
+          <ChampMotDePasse value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} required />
         </label>
         <Alerte type="erreur">{erreurConnexion}</Alerte>
         <button className="bouton bouton--primaire" type="submit" disabled={enCours}>
-          {enCours ? 'Connexion…' : 'Se connecter'}
+          {enCours ? t('Connexion…') : t('Se connecter')}
         </button>
       </form>
     </div>

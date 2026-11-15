@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n/I18nContext'
+
 const LIBELLES = {
   EMPLOYE: 'Employé',
   MANAGER: 'Manager',
@@ -7,5 +9,6 @@ const LIBELLES = {
 }
 
 export default function RoleBadge({ role }) {
-  return <span className="badge badge--role">{LIBELLES[role] || role}</span>
+  const { t } = useI18n()
+  return <span className="badge badge--role">{LIBELLES[role] ? t(LIBELLES[role]) : role}</span>
 }

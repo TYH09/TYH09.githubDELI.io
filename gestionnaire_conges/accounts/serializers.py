@@ -1,8 +1,41 @@
+import re
+
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
-from .models import Departement, RoleUtilisateur, Sexe, Utilisateur
+from .models import ROLES_AVEC_CONGES, Departement, RoleUtilisateur, Sexe, Utilisateur
+
+MATRICULE_MIN, MATRICULE_MAX = 8, 16
+
+
+class MatriculeField(serializers.CharField):
+    """Matricule : lettres MAJUSCULES et chiffres uniquement, au moins un
+    chiffre, de 8 à 16 caractères. La saisie est mise en majuscules
+    automatiquement. Un matricule antérieur à cette règle reste accepté tant
+    qu'il n'est pas modifié (les anciens comptes ne sont pas bloqués)."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("max_length", None)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        valeur = super().to_internal_value(data).strip().upper()
+        instance = getattr(self.parent, "instance", None)
+        if instance is not None and valeur == (instance.matricule or "").upper():
+            return instance.matricule  # inchangé : on conserve la valeur existante
+        if not (MATRICULE_MIN <= len(valeur) <= MATRICULE_MAX):
+            raise serializers.ValidationError(
+                f"Le matricule doit contenir entre {MATRICULE_MIN} et {MATRICULE_MAX} caractères."
+            )
+        if not re.fullmatch(r"[A-Z0-9]+", valeur):
+            raise serializers.ValidationError(
+                "Le matricule ne peut contenir que des lettres (A-Z) et des chiffres, sans espace ni symbole."
+            )
+        if not re.search(r"\d", valeur):
+            raise serializers.ValidationError("Le matricule doit contenir au moins un chiffre.")
+        return valeur
 
 
 class DepartementSerializer(serializers.ModelSerializer):
@@ -56,7 +89,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):
 
     def get_droit_conge_annuel(self, obj):
         """Jours de congé annuel par an (18 ou 21), seulement pour un employé éligible."""
-        if obj.role != RoleUtilisateur.EMPLOYE or not obj.est_eligible_conge_annuel():
+        if obj.role not in ROLES_AVEC_CONGES or not obj.est_eligible_conge_annuel():
             return None
         return obj.droit_conge_annuel()
 
@@ -73,9 +106,32 @@ class _UtilisateurEcritureBase(serializers.ModelSerializer):
         many=True, queryset=Departement.objects.all(), required=False,
         help_text="Départements supervisés (uniquement pour le rôle Direction Générale).",
     )
+    matricule = MatriculeField(
+        validators=[UniqueValidator(
+            queryset=Utilisateur.objects.all(), lookup="iexact",
+            message="Un utilisateur avec ce matricule existe déjà.",
+        )],
+    )
 
     def validate_telephone(self, value):
-        return (value or "").strip()
+        """Chiffres uniquement (espaces admis comme séparateurs, « + » initial
+        facultatif) ; entre 9 et 13 caractères significatifs, le « + » comptant
+        pour un : « +237 674 847 765 » = 13. Un ancien numéro non modifié reste accepté."""
+        valeur = re.sub(r"\s+", " ", (value or "").strip())
+        if self.instance is not None and valeur == (self.instance.telephone or "").strip():
+            return valeur
+        if not valeur:
+            return ""
+        if not re.fullmatch(r"\+?[0-9]+(?: [0-9]+)*", valeur):
+            raise serializers.ValidationError(
+                "Le numéro de téléphone ne peut contenir que des chiffres (espaces autorisés, « + » initial facultatif)."
+            )
+        taille = len(valeur.replace(" ", ""))  # le « + » compte pour un
+        if not 9 <= taille <= 13:
+            raise serializers.ValidationError(
+                "Le numéro de téléphone doit comporter entre 9 et 13 chiffres (le « + » compte pour un)."
+            )
+        return valeur
 
     def validate_date_embauche(self, value):
         if value and value > timezone.localdate():
@@ -84,15 +140,16 @@ class _UtilisateurEcritureBase(serializers.ModelSerializer):
 
     def validate(self, attrs):
         role = attrs.get("role", getattr(self.instance, "role", RoleUtilisateur.EMPLOYE))
-        # Un employé doit avoir une date d'entrée à l'usine : elle fixe son
+        # Un employé (comme un chef de département, un RH ou un directeur, qui posent
+        # eux aussi des congés) doit avoir une date d'entrée à l'usine : elle fixe son
         # ancienneté, donc son droit au congé annuel. Exigée à la création et dès
         # qu'on touche au rôle ou à la date (les comptes anciens sans date ne
         # bloquent pas les modifications sans rapport).
-        if role == RoleUtilisateur.EMPLOYE:
+        if role in ROLES_AVEC_CONGES:
             date = attrs["date_embauche"] if "date_embauche" in attrs else getattr(self.instance, "date_embauche", None)
             if not date and (self.instance is None or "role" in attrs or "date_embauche" in attrs):
                 raise serializers.ValidationError(
-                    {"date_embauche": "La date d'entrée à l'usine est obligatoire pour un employé."}
+                    {"date_embauche": "La date d'entrée à l'usine est obligatoire pour ce rôle."}
                 )
         self._valider_enfant(attrs, role)
         fonction = attrs.get("fonction_direction", getattr(self.instance, "fonction_direction", None))
@@ -115,7 +172,7 @@ class _UtilisateurEcritureBase(serializers.ModelSerializer):
         annuel). Exigées à la création et dès qu'on touche au rôle, au sexe ou à
         ces champs ; sans objet pour les autres comptes (valeurs effacées)."""
         sexe = attrs.get("sexe", getattr(self.instance, "sexe", None))
-        if role != RoleUtilisateur.EMPLOYE or sexe != Sexe.FEMININ:
+        if role not in ROLES_AVEC_CONGES or sexe != Sexe.FEMININ:
             attrs["a_enfant"] = None
             attrs["age_dernier_enfant"] = None
             return

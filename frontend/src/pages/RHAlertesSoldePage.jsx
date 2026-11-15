@@ -4,10 +4,12 @@ import api, { messageErreur } from '../api/client'
 import Carte from '../components/Carte'
 import Alerte from '../components/Alerte'
 import Chargement from '../components/Chargement'
+import { useI18n } from '../i18n/I18nContext'
 
 const ANNEE_COURANTE = new Date().getFullYear()
 
 export default function RHAlertesSoldePage() {
+  const { t } = useI18n()
   const [donnees, setDonnees] = useState(null)
   const [erreur, setErreur] = useState('')
 
@@ -22,20 +24,20 @@ export default function RHAlertesSoldePage() {
 
   return (
     <div className="page">
-      <p><Link to="/rh/dashboard">← Indicateurs RH</Link></p>
-      <h1>Alertes de solde faible — {donnees.annee}</h1>
+      <p><Link to="/rh/dashboard">{t('← Indicateurs RH')}</Link></p>
+      <h1>{t('Alertes de solde faible — {annee}', { annee: donnees.annee })}</h1>
       <p className="texte-discret">
-        Soldes dont les jours restants sont inférieurs ou égaux au seuil d’alerte du type de congé : {donnees.count}.
+        {t('Soldes dont les jours restants sont inférieurs ou égaux au seuil d’alerte du type de congé : {n}.', { n: donnees.count })}
       </p>
       {donnees.count === 0 ? (
-        <Carte><p className="texte-discret">Aucun solde sous son seuil d’alerte.</p></Carte>
+        <Carte><p className="texte-discret">{t('Aucun solde sous son seuil d’alerte.')}</p></Carte>
       ) : (
-        <Carte titre="Soldes concernés">
+        <Carte titre={t('Soldes concernés')}>
           <table className="tableau tableau--chiffres">
             <thead>
               <tr>
-                <th>Employé</th><th>Matricule</th><th>Département</th><th>Type de congé</th>
-                <th>Jours acquis</th><th>Jours restants</th><th>Seuil d’alerte</th>
+                <th>{t('Employé')}</th><th>{t('Matricule')}</th><th>{t('Département')}</th><th>{t('Type de congé')}</th>
+                <th>{t('Jours acquis')}</th><th>{t('Jours restants')}</th><th>{t('Seuil d’alerte')}</th>
               </tr>
             </thead>
             <tbody>
@@ -44,7 +46,7 @@ export default function RHAlertesSoldePage() {
                   <td>{a.nom_complet}</td>
                   <td>{a.matricule}</td>
                   <td>{a.departement || '—'}</td>
-                  <td>{a.type_conge}</td>
+                  <td>{t(a.type_conge)}</td>
                   <td>{a.jours_acquis}</td>
                   <td><strong>{a.jours_restants}</strong></td>
                   <td>{a.seuil_alerte}</td>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import api from '../api/client'
+import { useI18n } from '../i18n/I18nContext'
 
 /**
  * Ouvre le justificatif d'une demande. Le fichier n'a pas d'URL publique :
@@ -9,11 +10,12 @@ import api from '../api/client'
  * l'ouvre dans un nouvel onglet.
  */
 export default function Justificatif({ demande }) {
+  const { t } = useI18n()
   const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState('')
 
   if (!demande.a_justificatif) {
-    return <span className="texte-discret">Aucun justificatif</span>
+    return <span className="texte-discret">{t('Aucun justificatif')}</span>
   }
 
   async function ouvrir() {
@@ -37,7 +39,7 @@ export default function Justificatif({ demande }) {
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch {
       if (fenetre) fenetre.close()
-      setErreur('Impossible d’ouvrir le justificatif.')
+      setErreur(t('Impossible d’ouvrir le justificatif.'))
     } finally {
       setEnCours(false)
     }
@@ -46,7 +48,7 @@ export default function Justificatif({ demande }) {
   return (
     <span>
       <button type="button" className="bouton bouton--discret" onClick={ouvrir} disabled={enCours}>
-        {enCours ? '…' : '📎 Voir le justificatif'}
+        {enCours ? '…' : t('📎 Voir le justificatif')}
       </button>
       {erreur && <span className="alerte alerte--erreur">{erreur}</span>}
     </span>

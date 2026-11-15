@@ -18,7 +18,7 @@ from .test_evolutions_v2 import MEDIA_TMP, BaseV2, creer, jour
 def payload(**kw):
     base = {
         "username": "nouveau", "password": "Zx#9kLmN2026", "first_name": "No", "last_name": "Uveau",
-        "email": "n@v.local", "matricule": "N1", "role": "EMPLOYE", "sexe": "F", "a_enfant": False,
+        "email": "n@v.local", "matricule": "NOUVEAU001", "role": "EMPLOYE", "sexe": "F", "a_enfant": False,
         "date_embauche": "2020-01-15",
     }
     base.update(kw)
@@ -43,15 +43,15 @@ class TelephoneTests(BaseV2):
         self.assertEqual(resp.data["telephone"], "")
 
     def test_telephone_invalide_refuse(self):
-        for mauvais in ("abc", "12", "+237-@@-123456", "6" * 40):
+        for mauvais in ("abc", "12", "+237-@@-123456", "6" * 40, "12345678", "+237 674 847 7655", "(237) 6 70-12-34-56", "237.670.123.456", "+237-670-123-456", "67+4847765"):
             resp = self.client.post("/api/utilisateurs/", payload(telephone=mauvais), format="json")
             self.assertEqual(resp.status_code, 400, mauvais)
             self.assertIn("telephone", resp.data)
 
     def test_formats_courants_acceptes(self):
-        for i, bon in enumerate(("670123456", "+237670123456", "(237) 6 70-12-34-56", "237.670.123.456")):
+        for i, bon in enumerate(("670123456", "+237670123456", "+237 674 847 765", "6 74 84 77 65", "2376748477651")):
             resp = self.client.post(
-                "/api/utilisateurs/", payload(username=f"u{i}", matricule=f"M{i}", telephone=bon), format="json"
+                "/api/utilisateurs/", payload(username=f"u{i}", matricule=f"MATRIC{i:04d}", telephone=bon), format="json"
             )
             self.assertEqual(resp.status_code, 201, (bon, resp.data))
 
