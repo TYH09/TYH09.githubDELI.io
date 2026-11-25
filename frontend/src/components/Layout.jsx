@@ -152,14 +152,16 @@ export default function Layout() {
           ))}
         </nav>
         <div className={'entete__utilisateur' + (menuOuvert ? ' entete__utilisateur--ouvert' : '')}>
-          <LangueSwitch />
           <div className="entete__identite">
             <strong>{profil.first_name} {profil.last_name}</strong>
             <RoleBadge role={profil.role} />
           </div>
-          <button className="bouton bouton--discret" onClick={handleDeconnexion}>
-            {t('Déconnexion')}
-          </button>
+          <div className="entete__actions">
+            <LangueSwitch />
+            <button className="bouton bouton--discret" onClick={handleDeconnexion}>
+              {t('Déconnexion')}
+            </button>
+          </div>
         </div>
       </header>
       <main className="contenu" ref={contenuRef}>

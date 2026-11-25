@@ -30,14 +30,16 @@ function TableDemandesResume({ demandes }) {
   )
 }
 
-function TableauEmploye() {
+// `avecDemandes` : l'employé voit aussi le résumé de ses dernières demandes ; les autres rôles
+// (chef de département, RH, directeur) ont, comme sur les maquettes, uniquement leurs soldes.
+function TableauEmploye({ avecDemandes = true }) {
   const { t } = useI18n()
   const { soldes, profil } = useAuth()
   const [demandes, setDemandes] = useState(null)
 
   useEffect(() => {
-    api.get('/demandes/', { params: { mes: 1 } }).then(({ data }) => setDemandes(data.results.slice(0, 5)))
-  }, [])
+    if (avecDemandes) api.get('/demandes/', { params: { mes: 1 } }).then(({ data }) => setDemandes(data.results.slice(0, 5)))
+  }, [avecDemandes])
 
   return (
     <>
@@ -59,7 +61,7 @@ function TableauEmploye() {
         )}
       </div>
 
-      <Carte
+      {avecDemandes && <Carte
         titre={t('Mes dernières demandes')}
         action={<Link className="bouton bouton--primaire" to="/mes-demandes">{t('Voir tout / Nouvelle demande')}</Link>}
       >
@@ -70,81 +72,7 @@ function TableauEmploye() {
         ) : (
           <TableDemandesResume demandes={demandes} />
         )}
-      </Carte>
-    </>
-  )
-}
-
-function TableauValidateur({ niveau, lien, titre = 'Demandes à valider' }) {
-  const { t } = useI18n()
-  const [compte, setCompte] = useState(null)
-
-  useEffect(() => {
-    api.get('/demandes/', { params: { statut: niveau } }).then(({ data }) => setCompte(data.count))
-  }, [niveau])
-
-  return (
-    <Carte titre={t(titre)}>
-      {compte === null ? (
-        <Chargement />
-      ) : (
-        <>
-          <p className="chiffre-cle">{compte}</p>
-          <p className="texte-discret">{t('en attente de votre décision')}</p>
-          <Link className="bouton bouton--primaire" to={lien}>{t('Traiter les demandes')}</Link>
-        </>
-      )}
-    </Carte>
-  )
-}
-
-function CarteAbsencesDuJour() {
-  const { t } = useI18n()
-  const [compte, setCompte] = useState(null)
-
-  useEffect(() => {
-    api.get('/equipe/absences/', { params: { periode: 'en_cours' } }).then(({ data }) => setCompte(data.count))
-  }, [])
-
-  return (
-    <Carte titre={t('Absents aujourd’hui')}>
-      {compte === null ? (
-        <Chargement />
-      ) : (
-        <>
-          <p className="chiffre-cle">{compte}</p>
-          <p className="texte-discret">{t('collaborateur(s) de votre département en congé')}</p>
-          <Link className="bouton bouton--primaire" to="/absences">{t('Voir les absences')}</Link>
-        </>
-      )}
-    </Carte>
-  )
-}
-
-function TableauRH() {
-  const { t } = useI18n()
-  const [indicateurs, setIndicateurs] = useState(null)
-
-  useEffect(() => {
-    api.get('/dashboard/rh/').then(({ data }) => setIndicateurs(data))
-  }, [])
-
-  if (!indicateurs) return <Chargement />
-
-  return (
-    <>
-      <div className="grille-cartes">
-        <Link className="carte-lien" to="/rh/demandes-en-attente">
-          <Carte titre={t('Demandes en attente')}><p className="chiffre-cle">{indicateurs.demandes_en_attente}</p></Carte>
-        </Link>
-        <Link className="carte-lien" to="/rh/employes-sans-conge-annuel">
-          <Carte titre={t('Salariés sans congé annuel cette année')}><p className="chiffre-cle">{indicateurs.salaries_sans_conge_annuel}</p></Carte>
-        </Link>
-        <Link className="carte-lien" to="/rh/alertes-solde">
-          <Carte titre={t('Alertes solde faible')}><p className="chiffre-cle">{indicateurs.alertes_solde_faible}</p></Carte>
-        </Link>
-      </div>
-      <Link className="bouton bouton--primaire" to="/rh/dashboard">{t('Voir le détail par département')}</Link>
+      </Carte>}
     </>
   )
 }
@@ -186,22 +114,7 @@ export default function DashboardPage() {
   return (
     <div className="page">
       <h1>{t('Salut {nom} 👋', { nom: profil.first_name })}</h1>
-      {ROLES_AVEC_CONGES.includes(profil.role) && <TableauEmploye />}
-      {profil.role === 'MANAGER' && (
-        <div className="grille-cartes">
-          <TableauValidateur niveau="EN_ATTENTE_MANAGER" lien="/validations/manager" />
-          <CarteAbsencesDuJour />
-        </div>
-      )}
-      {profil.role === 'DIRECTEUR' && <TableauValidateur niveau="EN_ATTENTE_DIRECTION" lien="/validations/direction" />}
-      {profil.role === 'RH' && (
-        <>
-          <div className="grille-cartes">
-            <TableauValidateur niveau="EN_ATTENTE_RH" lien="/validations/rh" titre="Demandes des directeurs à valider" />
-          </div>
-          <TableauRH />
-        </>
-      )}
+      {ROLES_AVEC_CONGES.includes(profil.role) && <TableauEmploye avecDemandes={profil.role === 'EMPLOYE'} />}
       {profil.role === 'ADMINISTRATEUR' && <TableauAdministrateur />}
     </div>
   )
