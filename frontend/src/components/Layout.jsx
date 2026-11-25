@@ -123,7 +123,7 @@ export default function Layout() {
     <div className="mise-en-page">
       <header className="entete">
         <div className="entete__marque">
-          <span className="entete__logo">GC</span>
+          <span className="entete__logo"><img src="/logo-belles-tomates.png" alt="Belles Tomates" /></span>
           <span>{t('Gestionnaire de Congés')}</span>
         </div>
         <button

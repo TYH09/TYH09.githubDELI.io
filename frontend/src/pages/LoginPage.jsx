@@ -32,7 +32,7 @@ export default function LoginPage() {
       <div className="page-connexion__langue"><LangueSwitch variante="clair" /></div>
       <form className="carte carte--connexion" onSubmit={handleSubmit}>
         <div className="entete__marque entete__marque--centree">
-          <span className="entete__logo">GC</span>
+          <span className="entete__logo"><img src="/logo-belles-tomates.png" alt="Belles Tomates" /></span>
           <span>{t('Gestionnaire de Congés')}</span>
         </div>
         <p className="texte-discret">Delifood Agro-Industry</p>

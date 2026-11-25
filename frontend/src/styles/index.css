@@ -51,13 +51,14 @@ a { color: var(--vert); }
   flex-wrap: wrap;
 }
 .entete__marque { display: flex; align-items: center; gap: 0.6rem; font-weight: bold; }
-.entete__marque--centree .entete__logo { background: var(--rouge); color: #fff; }
-.entete__marque--centree { justify-content: center; margin-bottom: 0.5rem; color: var(--rouge-fonce); }
+.entete__marque--centree .entete__logo { background: transparent; padding: 0; }
+.entete__marque--centree .entete__logo img { height: 2.8rem; }
+.entete__marque--centree { justify-content: center; text-align: center; width: 100%; margin-bottom: 0.5rem; color: var(--rouge-fonce); }
 .entete__logo {
-  background: #fff; color: var(--rouge-fonce); font-weight: bold;
-  border-radius: 50%; width: 2rem; height: 2rem; display: flex;
-  align-items: center; justify-content: center; font-size: 0.8rem;
+  background: #fff; border-radius: 8px; padding: 0.15rem 0.5rem; display: flex;
+  align-items: center; justify-content: center;
 }
+.entete__logo img { height: 2.1rem; width: auto; display: block; }
 .entete__nav { display: flex; gap: 0.3rem; flex: 1; flex-wrap: wrap; }
 .entete__lien {
   color: #fff; text-decoration: none; padding: 0.5rem 0.65rem;
